@@ -19,47 +19,47 @@ public class PacketDeliveryService extends IntentService {
 	/**
 	 * Key used for storing the server address in the creating Intent.
 	 */
-	public final String SERVER_ADDRESS = "server address";
+	public static final String SERVER_ADDRESS = "server address";
 	
 	/**
 	 * Key used for storing the server port in the creating Intent.
 	 */
-	public final String SERVER_PORT = "server port";
+	public static final String SERVER_PORT = "server port";
 	
 	/**
 	 * Key used for storing the xml data in the creating Intent.
 	 */
-	public final String DATA = "data";
+	public static final String DATA = "data";
 	
 	/**
 	 * Key for retrieving the result from the resulting intent.
 	 */
-	public final String RESULT = "result";
+	public static final String RESULT = "result";
 	
 	/**
 	 * Key for retrieving any caught exceptions (if result is RESULT_IO_EXCEPTION or RESULT_UNKNOWN_ERROR).
 	 */
-	public final String EXCEPTION = "exception";
+	public static final String EXCEPTION = "exception";
 	
 	/**
 	 * Result code indicating that the server address was not provided.
 	 */
-	public final int RESULT_NO_SERVER_ADDRESS = Activity.RESULT_FIRST_USER;
+	public static final int RESULT_NO_SERVER_ADDRESS = Activity.RESULT_FIRST_USER;
 	
 	/**
 	 * Result code indicating that the server port was not provided.
 	 */
-	public final int RESULT_NO_SERVER_PORT = Activity.RESULT_FIRST_USER + 1;
+	public static final int RESULT_NO_SERVER_PORT = Activity.RESULT_FIRST_USER + 1;
 	
 	/**
 	 * Result code indicating that sending the packet threw an {@link IOException}.
 	 */
-	public final int RESULT_IO_EXCEPTION = Activity.RESULT_FIRST_USER + 2;
+	public static final int RESULT_IO_EXCEPTION = Activity.RESULT_FIRST_USER + 2;
 	
 	/**
 	 * Result code indicating that execution unexpectedly ended.
 	 */
-	public final int RESULT_UNKOWN_ERROR = Activity.RESULT_FIRST_USER + 3;
+	public static final int RESULT_UNKOWN_ERROR = Activity.RESULT_FIRST_USER + 3;
 	
 	public PacketDeliveryService() {
 		super("PacketDeliveryService");
