@@ -96,6 +96,7 @@ public class MessagingService extends Service implements ServiceConnection {
 	public void onServiceDisconnected(ComponentName name) {
 		Intent listenerIntent = new Intent(this, IncomingPacketListenerService.class);
 		listenerIntent.putExtra(IncomingPacketListenerService.BIND_PORT, bindPort);
+		startService(listenerIntent);
 	}
 	
 	public class Api {
@@ -109,22 +110,18 @@ public class MessagingService extends Service implements ServiceConnection {
 		}
 
 		public void onEmptyPacketReceived() {
-			// TODO Auto-generated method stub
 			
 		}
 
 		public void onReceiveIoException() {
-			// TODO Auto-generated method stub
 			
 		}
 
 		public void onNoSocketProvided() {
-			// TODO Auto-generated method stub
 			
 		}
 
 		public void onReceiveError() {
-			// TODO Auto-generated method stub
 			
 		}
 		

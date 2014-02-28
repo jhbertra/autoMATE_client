@@ -48,7 +48,9 @@ public class IncomingPacketListenerService extends Service {
 				bindPort = intent.getIntExtra(BIND_PORT, 6300);
 				try {
 					serverSocket = new ServerSocket(bindPort);
-					new PacketReceiveServiceFactory(serverSocket.accept(), IncomingPacketListenerService.this).startService();
+					while(true) {
+						new PacketReceiveServiceFactory(serverSocket.accept(), IncomingPacketListenerService.this).startService();
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
