@@ -14,5 +14,12 @@
     <string name="reg_name">Name</string>
     <string name="reg_confirm_password">Confirm Password</string>
     <string name="button_register">Register</string>
+    <string name="auth_signing_in">Signing in...</string>
+    <string name="auth_title_failed">Authentication Failed</string>
+    <string name="auth_failed">Could not sign in.</string>
+    <string name="button_ok">ok</string>
+    <string name="prefs_credentials">com.automate.client.CredentialsPreferences</string>
+    <string name="prefs_credentials_username">com.automate.client.CredentialsPreferences.username</string>
+    <string name="prefs_credentials_password">com.automate.client.CredentialsPreferences.password</string>
 
 </resources>
