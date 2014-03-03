@@ -22,6 +22,7 @@ public class PacketReceiveServiceFactory implements ServiceConnection {
 
 	public void startService() {
 		Intent intent = new Intent(context, PacketReceiveService.class);
+		context.startService(intent);
 		context.bindService(intent, this, Context.BIND_AUTO_CREATE);
 	}
 

@@ -34,12 +34,14 @@
         android:id="@+id/auth_sign_in"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:onClick="onSignInPressed"
         android:text="@string/button_signIn" />
 
     <Button
         android:id="@+id/auth_new_account"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:onClick="onCreateNewAccountPressed"
         android:text="@string/button_createNewAccount" />
 
 </LinearLayout>

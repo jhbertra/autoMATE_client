@@ -13,7 +13,7 @@
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <EditText
-        android:id="@+id/editText1"
+        android:id="@+id/reg_username"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
@@ -23,7 +23,7 @@
     </EditText>
 
     <EditText
-        android:id="@+id/editText2"
+        android:id="@+id/reg_email"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
@@ -31,7 +31,7 @@
         android:inputType="textEmailAddress" />
 
     <EditText
-        android:id="@+id/editText3"
+        android:id="@+id/reg_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
@@ -39,7 +39,7 @@
         android:inputType="textPersonName" />
 
     <EditText
-        android:id="@+id/editText4"
+        android:id="@+id/reg_password"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
@@ -47,7 +47,7 @@
         android:inputType="textPassword" />
 
     <EditText
-        android:id="@+id/editText5"
+        android:id="@+id/reg_confirm_password"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ems="10"
@@ -55,9 +55,10 @@
         android:inputType="textPassword" />
 
     <Button
-        android:id="@+id/button1"
+        android:id="@+id/reg_btn_register"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/button_register" />
+        android:text="@string/button_register"
+        android:onClick="onRegisterPressed" />
 
 </LinearLayout>

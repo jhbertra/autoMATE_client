@@ -3,9 +3,10 @@ package com.automate.client.views.authentication;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.automate.client.AutoMateService;
 import com.automate.client.R;
 import com.automate.client.views.nodelist.NodeListActivity;
+import com.automate.client.views.AbstractAuthenticationService;
+import com.automate.client.views.AbstractAuthenticationService.AbstractAuthenticationServiceBinder;
 import com.automate.client.views.registration.RegistrationActivity;
 
 import android.app.Activity;
@@ -62,11 +63,7 @@ public class AuthenticationActivity extends Activity implements ServiceConnectio
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				Matcher matcher = usernamePattern.matcher(s);
-				if(matcher.matches()) {
-					setUsernameValid(true);
-				} else {
-					setUsernameValid(false);
-				}
+				setUsernameValid(matcher.matches());
 			}
 		};	
 		passwordWatcher = new TextWatcher() {
@@ -77,19 +74,15 @@ public class AuthenticationActivity extends Activity implements ServiceConnectio
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
 				Matcher matcher1 = passwordPattern1.matcher(s);
 				Matcher matcher2 = passwordPattern2.matcher(s);
-				if(s.length() >= 6 && matcher1.find() && matcher2.find()) {
-					setPasswordValid(true);
-				} else {
-					setPasswordValid(false);
-				}
+				setPasswordValid(s.length() >= 6 && matcher1.find() && matcher2.find());
 			}
 		};
 		
 		usernameValid = false;
 		passwordValid = false;
 		
-		usernamePattern = Pattern.compile("[a-zA-Z0-9_-.]{6}");
-		passwordPattern1 = Pattern.compile("[a-zA-A]");
+		usernamePattern = Pattern.compile("[a-zA-Z0-9_.-]{6,}");
+		passwordPattern1 = Pattern.compile("[a-zA-Z]");
 		passwordPattern2 = Pattern.compile("[0-9]");
 		
 		signInButton = (Button) findViewById(R.id.auth_sign_in);
@@ -100,9 +93,10 @@ public class AuthenticationActivity extends Activity implements ServiceConnectio
 		usernameView.addTextChangedListener(usernameWatcher);
 		passwordView.addTextChangedListener(passwordWatcher);
 		
-		Intent serviceIntent = new Intent(this, AutoMateService.class);
+		Intent serviceIntent = new Intent(this, AuthenticationService.class);
 		Messenger messenger = new Messenger(new Handler(this));
-		serviceIntent.putExtra(AuthenticationService.MESSENGER, messenger);
+		serviceIntent.putExtra(AbstractAuthenticationService.MESSENGER, messenger);
+		startService(serviceIntent);
 		bindService(serviceIntent, this, 0);
 	}
 	
@@ -133,9 +127,7 @@ public class AuthenticationActivity extends Activity implements ServiceConnectio
 	}
 	
 	public void onCreateNewAccountPressed(View v) {
-		Intent registrationViewIntent = new Intent(this, RegistrationActivity.class);
-		registrationViewIntent.putExtra(RegistrationActivity.USERNAME, this.usernameView.getText());
-		startActivityForResult(registrationViewIntent, RegistrationActivity.REGISTRATION_COMPLETE);
+		startActivityForResult(new Intent(this, RegistrationActivity.class), RegistrationActivity.REGISTRATION_COMPLETE);
 	}
 	
 	/* (non-Javadoc)
@@ -150,7 +142,7 @@ public class AuthenticationActivity extends Activity implements ServiceConnectio
 
 	@Override
 	public void onServiceConnected(ComponentName name, IBinder service) {
-		this.mService = ((AuthenticationService.Binder) service).getService();
+		this.mService = (AuthenticationService) ((AbstractAuthenticationServiceBinder) service).getService();
 	}
 
 	@Override
@@ -169,9 +161,10 @@ public class AuthenticationActivity extends Activity implements ServiceConnectio
 			break;
 		case AuthenticationService.AUTHENTICATION_FAILED:
 			this.progressDialog.dismiss();
+			String message = getResources().getString(R.string.auth_failed) + "\n" + msg.obj;
 			new AlertDialog.Builder(this)
 			.setTitle(R.string.auth_title_failed)
-			.setMessage(R.string.auth_failed)
+			.setMessage(message)
 			.setNeutralButton(R.string.button_ok, new OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {

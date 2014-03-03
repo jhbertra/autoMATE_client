@@ -3,23 +3,25 @@
 
     <string name="app_name">AutoMATE Client</string>
     <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello world!</string>
     <string name="auth_username">Username</string>
     <string name="auth_password">Password</string>
+    <string name="auth_Title">Sign In to autoMATE!</string>
+    <string name="auth_signing_in">Signing in...</string>
+    <string name="auth_title_failed">Authentication Failed</string>
+    <string name="auth_failed">Could not sign in.</string>
+    <string name="button_register">Register</string>
+    <string name="button_ok">ok</string>
     <string name="button_signIn">Sign In</string>
     <string name="button_createNewAccount">Create New Account</string>
-    <string name="auth_Title">Sign In to autoMATE!</string>
+    <string name="prefs_credentials">com.automate.client.CredentialsPreferences</string>
+    <string name="prefs_credentials_username">com.automate.client.CredentialsPreferences.username</string>
+    <string name="prefs_credentials_password">com.automate.client.CredentialsPreferences.password</string>
     <string name="reg_title">Create a New Account!</string>
     <string name="reg_email">Email Address</string>
     <string name="reg_name">Name</string>
     <string name="reg_confirm_password">Confirm Password</string>
-    <string name="button_register">Register</string>
-    <string name="auth_signing_in">Signing in...</string>
-    <string name="auth_title_failed">Authentication Failed</string>
-    <string name="auth_failed">Could not sign in.</string>
-    <string name="button_ok">ok</string>
-    <string name="prefs_credentials">com.automate.client.CredentialsPreferences</string>
-    <string name="prefs_credentials_username">com.automate.client.CredentialsPreferences.username</string>
-    <string name="prefs_credentials_password">com.automate.client.CredentialsPreferences.password</string>
+    <string name="reg_registering">Creating new account...</string>
+    <string name="reg_title_failed">Registration Failed</string>
+    <string name="reg_failed">Unable to create account.</string>
 
 </resources>

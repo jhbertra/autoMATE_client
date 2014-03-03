@@ -60,6 +60,8 @@ public class PacketDeliveryService extends IntentService {
 	 * Result code indicating that execution unexpectedly ended.
 	 */
 	public static final int RESULT_UNKOWN_ERROR = Activity.RESULT_FIRST_USER + 3;
+
+	public static final String PACKET_ID = "Packet Id";
 	
 	public PacketDeliveryService() {
 		super("PacketDeliveryService");
@@ -67,8 +69,10 @@ public class PacketDeliveryService extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
+		Log.d(getClass().getName(), "Starting PacketDeliveryService.");
 		int result = RESULT_UNKOWN_ERROR;
 		Throwable throwable = null;
+		int packetId = intent.getIntExtra(PACKET_ID, -1);
 		try {
 			String serverAddress = intent.getStringExtra(SERVER_ADDRESS);
 			int serverPort = intent.getIntExtra(SERVER_PORT, 6300);
@@ -81,6 +85,9 @@ public class PacketDeliveryService extends IntentService {
 			} else if(xmlData == null) {
 				Log.w(getClass().getName(), "No message data provided. Terminating service.");
 				result = RESULT_NO_SERVER_PORT;
+				return;
+			} else if(packetId < 0) {
+				Log.w(getClass().getName(), "No packet id provided. Terminating service.");
 				return;
 			}
 
@@ -111,16 +118,17 @@ public class PacketDeliveryService extends IntentService {
 			result = RESULT_UNKOWN_ERROR;
 			throwable = t;
 		} finally {
-			publishResults(result, throwable);
+			publishResults(result, throwable, packetId);
 		}
 	}
 	
-	private void publishResults(int result, Throwable throwable) {
+	private void publishResults(int result, Throwable throwable, int packetId) {
 		Intent intent = new Intent(getClass().getName());
 		intent.putExtra(RESULT, result);
 		if(throwable != null) {
 			intent.putExtra(EXCEPTION, throwable);
 		}
+		intent.putExtra(PACKET_ID, packetId);
 		sendBroadcast(intent);
 	}
 	

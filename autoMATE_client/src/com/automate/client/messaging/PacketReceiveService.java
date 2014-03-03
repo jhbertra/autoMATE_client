@@ -100,6 +100,7 @@ public class PacketReceiveService extends IntentService {
 	
 	@Override
 	public void onHandleIntent(Intent intent) {
+		Log.d(getClass().getName(), "Starting PacketReceiveService.");
 		int result = RESULT_UNKOWN_ERROR;
 		Throwable throwable = null;
 		String message = null;

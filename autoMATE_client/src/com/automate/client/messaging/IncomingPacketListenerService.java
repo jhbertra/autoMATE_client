@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 
 public class IncomingPacketListenerService extends Service {
 
@@ -42,6 +43,7 @@ public class IncomingPacketListenerService extends Service {
 	 */
 	@Override
 	public int onStartCommand(final Intent intent, int flags, int startId) {
+		Log.d(getClass().getName(), "Starting IncomingPacketListenerService.");
 		new Thread(new Runnable() {
 			@Override
 			public void run() {

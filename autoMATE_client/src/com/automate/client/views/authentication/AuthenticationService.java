@@ -1,100 +1,26 @@
 package com.automate.client.views.authentication;
 
-import com.automate.client.messaging.MessagingService;
-import com.automate.client.messaging.handlers.AuthenticationListener;
+import com.automate.client.R;
+import com.automate.client.views.AbstractAuthenticationService;
+import com.automate.protocol.client.messages.ClientAuthenticationMessage;
 
-import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.util.Log;
+import android.content.SharedPreferences.Editor;
 
-public class AuthenticationService extends Service implements ServiceConnection, AuthenticationListener {
-
-	public static final String MESSENGER = "messenger";
-
-	public static final int AUTHENTICATION_SUCCESSFUL = 0;
-
-	public static final int AUTHENTICATION_FAILED = 1;
-
-	private final IBinder mBinder = new AuthenticationService.Binder();
-	
-	private MessagingService.Api mMessagingServiceApi;
-
-	private Messenger mMessenger;
-	
-	@Override
-	public IBinder onBind(Intent intent) {
-		return mBinder;
-	}
+public class AuthenticationService extends AbstractAuthenticationService {
 
 	public boolean signIn(String username, String password) {
+		String currentSessionKey = mMessagingServiceApi.getSessionKey();
+		if(username != null && password != null && (currentSessionKey == null || currentSessionKey.isEmpty())) {
+			ClientAuthenticationMessage message = new ClientAuthenticationMessage(mMessagingServiceApi.getProtocolParameters(), 
+					username, password);
+			mMessagingServiceApi.sendMessage(message, this);
+			String prefsKey = getResources().getString(R.string.prefs_credentials);
+			Editor editor = getSharedPreferences(prefsKey, MODE_PRIVATE).edit();
+			editor.putString(getResources().getString(R.string.prefs_credentials_password), password);
+			editor.commit();
+			return true;
+		}
 		return false;
-	}
-	
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		this.mMessenger = intent.getParcelableExtra(MESSENGER);
-		bindService(new Intent(this, MessagingService.class), this, Context.BIND_AUTO_CREATE);
-		return Service.START_NOT_STICKY;
-	}
-	
-	/* (non-Javadoc)
-	 * @see android.app.Service#onDestroy()
-	 */
-	@Override
-	public void onDestroy() {
-		super.onDestroy();
-		unbindService(this);
-	}
-
-
-
-	public class Binder extends android.os.Binder {
-
-		public AuthenticationService getService() {
-			return AuthenticationService.this;
-		}
-		
-	}
-
-	@Override
-	public void onServiceConnected(ComponentName name, IBinder service) {
-		this.mMessagingServiceApi = ((MessagingService.MessagingServiceBinder)service).getApi();
-		this.mMessagingServiceApi.addAuthenticationListener(this);
-	}
-
-	@Override
-	public void onServiceDisconnected(ComponentName name) {
-		this.mMessagingServiceApi = null;
-		this.mMessagingServiceApi.removeAuthenticationListener(this);
-	}
-
-	@Override
-	public void onAuthenticated(String sessionKey, String username, String password) {
-		Message message = new Message();
-		message.what = AUTHENTICATION_SUCCESSFUL;
-		try {
-			mMessenger.send(message);
-		} catch (Exception e) {
-			Log.e(getClass().getName(), "Authentication message could not be sent.", e);
-		}
-	}
-
-	@Override
-	public void onAuthenticationFailed(String failureMessage) {
-		Message message = new Message();
-		message.what = AUTHENTICATION_FAILED;
-		message.obj = failureMessage;
-		try {
-			mMessenger.send(message);
-		} catch (Exception e) {
-			Log.e(getClass().getName(), "Authentication message could not be sent.", e);
-		}
 	}
 	
 }

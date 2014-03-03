@@ -11,13 +11,14 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 
 public class AutoMateService extends Service {
 
-	private Api mApi;
 	private AutoMateServiceBinder mBinder;
 	
 	private MessagingService.Api mMessagingServiceApi;
+	private boolean started;
 	
 	/* (non-Javadoc)
 	 * @see android.app.Service#onCreate()
@@ -25,7 +26,7 @@ public class AutoMateService extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		mApi = new Api();
+		Log.d(getClass().getName(), "Creating AutoMateService.");
 		mBinder = new AutoMateServiceBinder();
 	}
 	
@@ -34,14 +35,16 @@ public class AutoMateService extends Service {
 	 */
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
+		Log.d(getClass().getName(), "Starting AutoMateService.");
+		if(started) return START_STICKY;
+		startService(new Intent(this, MessagingService.class));
 		bindService(new Intent(this, MessagingService.class), new ServiceConnection() {
 			@Override
 			public void onServiceDisconnected(ComponentName name) {
-				
 			}
-			
 			@Override
 			public void onServiceConnected(ComponentName name, IBinder service) {
+				Log.d(AutoMateService.this.getClass().getName(), "Bound to MessagingService.");
 				mMessagingServiceApi = ((MessagingServiceBinder) service).getApi();
 				SharedPreferences preferences = getSharedPreferences(getResources().getString(R.string.prefs_credentials), MODE_PRIVATE);
 				String username = preferences.getString(getResources().getString(R.string.prefs_credentials_username), null);
@@ -54,6 +57,7 @@ public class AutoMateService extends Service {
 				}
 			}
 		}, BIND_AUTO_CREATE);
+		started = true;
 		return START_STICKY;
 	}
 
@@ -62,14 +66,10 @@ public class AutoMateService extends Service {
 		return mBinder;
 	}
 	
-	public class Api {
-		
-	}
-	
 	public class AutoMateServiceBinder extends Binder {
 		
-		public Api getApi() {
-			return mApi;
+		public AutoMateService getService() {
+			return AutoMateService.this;
 		}
 		
 	}
