@@ -1,16 +1,15 @@
 package com.automate.client.messaging.handlers;
 
-import java.util.ArrayList;
-
 import android.util.Log;
 
+import com.automate.client.authentication.AuthenticationListener;
 import com.automate.protocol.Message;
 import com.automate.protocol.server.ServerProtocolParameters;
 import com.automate.protocol.server.messages.ServerAuthenticationMessage;
 
 public class AuthenticationMessageHandler implements IMessageHandler<ServerAuthenticationMessage, Void> {
 
-	private ArrayList<AuthenticationListener> listeners = new ArrayList<AuthenticationListener>();
+	private AuthenticationListener listener;
 	
 	@Override
 	public Message<ServerProtocolParameters> handleMessage(int majorVersion, int minorVersion, ServerAuthenticationMessage message, Void params) {
@@ -40,31 +39,19 @@ public class AuthenticationMessageHandler implements IMessageHandler<ServerAuthe
 	}
 
 	private void notifyAuthenticationFailed(String failureMessage) {
-		for(AuthenticationListener listener : listeners) {
+		if(listener != null) {
 			listener.onAuthenticationFailed(failureMessage);
 		}
 	}
 
 	private void notifyAuthenticated(String sessionKey, String username) {
-		for(AuthenticationListener listener : listeners) {
+		if(listener != null) {
 			listener.onAuthenticated(sessionKey, username);
 		}
 	}
 
-	public void addListener(AuthenticationListener listener) {
-		if(listener != null) {
-			listeners.add(listener);
-		} else {
-			Log.w(getClass().getName(), "Attempt to add a null listener.");
-		}
-	}
-
-	public void removeListener(AuthenticationListener listener) {
-		if(listener != null) {
-			listeners.remove(listener);
-		} else {
-			Log.w(getClass().getName(), "Attempt to remove a null listener.");
-		}
+	public void setListener(AuthenticationListener listener) {
+		this.listener = listener;
 	}
 	
 }

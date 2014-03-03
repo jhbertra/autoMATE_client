@@ -1,6 +1,8 @@
 package com.automate.client.messaging;
 
-public interface PacketReceivedListener {
+import com.automate.client.IListener;
+
+public interface PacketReceivedListener extends IListener {
 	
 	public void onPacketReceived(String packet);
 

@@ -1,7 +1,5 @@
 package com.automate.client.messaging;
 
-import com.automate.client.messaging.MessagingService.Api;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,10 +7,10 @@ import android.content.Intent;
 
 public class MessageReceiveReceiver extends BroadcastReceiver {
 
-	private MessagingService.Api messagingServiceApi;
+	private PacketReceivedListener mListener;
 	
-	public MessageReceiveReceiver(Api messagingServiceApi) {
-		this.messagingServiceApi = messagingServiceApi;
+	public MessageReceiveReceiver(PacketReceivedListener listener) {
+		this.mListener = listener;
 	}
 
 	@Override
@@ -22,20 +20,20 @@ public class MessageReceiveReceiver extends BroadcastReceiver {
 		case Activity.RESULT_OK:
 			String packet = intent.getStringExtra(PacketReceiveService.MESSAGE);
 			if(packet != null) {
-				messagingServiceApi.onPacketReceived(packet);
+				mListener.onPacketReceived(packet);
 			}
 			break;
 		case PacketReceiveService.RESULT_EMPTY_MESSAGE:
-			messagingServiceApi.onEmptyPacketReceived();
+			mListener.onEmptyPacketReceived();
 			break;
 		case PacketReceiveService.RESULT_IO_EXCEPTION:
-			messagingServiceApi.onReceiveIoException();
+			mListener.onReceiveIoException();
 			break;
 		case PacketReceiveService.RESULT_NO_SOCKET_PROVIDED:
-			messagingServiceApi.onNoSocketProvided();
+			mListener.onNoSocketProvided();
 			break;
 		case PacketReceiveService.RESULT_UNKOWN_ERROR:
-			messagingServiceApi.onReceiveError();
+			mListener.onReceiveError();
 			break;
 		default:
 			break;

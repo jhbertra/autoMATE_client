@@ -14,9 +14,10 @@ import android.os.Messenger;
 import android.util.Log;
 
 import com.automate.client.R;
+import com.automate.client.authentication.AuthenticationListener;
+import com.automate.client.authentication.AuthenticationManager;
 import com.automate.client.messaging.MessagingService;
 import com.automate.client.messaging.PacketSentListener;
-import com.automate.client.messaging.handlers.AuthenticationListener;
 
 public abstract class AbstractAuthenticationService extends Service implements AuthenticationListener, PacketSentListener {
 
@@ -30,14 +31,17 @@ public abstract class AbstractAuthenticationService extends Service implements A
 	private ServiceConnection connection = new ServiceConnection() {
 		@Override
 		public void onServiceDisconnected(ComponentName name) {
+			AbstractAuthenticationService.this.mMessagingServiceApi.getManager(AuthenticationManager.class)
+				.removeListener(AbstractAuthenticationService.this);
+			
 			AbstractAuthenticationService.this.mMessagingServiceApi = null;
-			AbstractAuthenticationService.this.mMessagingServiceApi.removeAuthenticationListener(AbstractAuthenticationService.this);
 		}
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			Log.d(this.getClass().getName(), "Bound to MessagingService.");
 			AbstractAuthenticationService.this.mMessagingServiceApi = ((MessagingService.MessagingServiceBinder)service).getApi();
-			AbstractAuthenticationService.this.mMessagingServiceApi.addAuthenticationListener(AbstractAuthenticationService.this);
+			AbstractAuthenticationService.this.mMessagingServiceApi.getManager(AuthenticationManager.class)
+				.addListener(AbstractAuthenticationService.this);
 		}
 	};
 	

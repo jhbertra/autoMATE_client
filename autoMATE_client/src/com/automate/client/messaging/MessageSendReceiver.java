@@ -1,7 +1,5 @@
 package com.automate.client.messaging;
 
-import com.automate.client.messaging.MessagingService.Api;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,10 +7,10 @@ import android.content.Intent;
 
 public class MessageSendReceiver extends BroadcastReceiver {
 
-	private MessagingService.Api messagingServiceApi;
+	private PacketSentListener mListener;
 	
-	public MessageSendReceiver(Api messagingServiceApi) {
-		this.messagingServiceApi = messagingServiceApi;
+	public MessageSendReceiver(PacketSentListener listener) {
+		this.mListener = listener;
 	}
 	
 	@Override
@@ -21,19 +19,19 @@ public class MessageSendReceiver extends BroadcastReceiver {
 		int packetId = intent.getIntExtra(PacketDeliveryService.PACKET_ID, -1);
 		switch (result) {
 		case Activity.RESULT_OK:
-			messagingServiceApi.onPacketSent(packetId);
+			mListener.onPacketSent(packetId);
 			break;
 		case PacketDeliveryService.RESULT_IO_EXCEPTION:
-			messagingServiceApi.onSendIoException(packetId);
+			mListener.onSendIoException(packetId);
 			break;
 		case PacketDeliveryService.RESULT_NO_SERVER_ADDRESS:
-			messagingServiceApi.onSendNoServerAddress(packetId);
+			mListener.onSendNoServerAddress(packetId);
 			break;
 		case PacketDeliveryService.RESULT_NO_SERVER_PORT:
-			messagingServiceApi.onSendNoServerPort(packetId);
+			mListener.onSendNoServerPort(packetId);
 			break;
 		case PacketDeliveryService.RESULT_UNKOWN_ERROR:
-			messagingServiceApi.onSendError(packetId);
+			mListener.onSendError(packetId);
 			break;
 		default:
 			break;

@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Hashtable;
 
 import com.automate.client.R;
+import com.automate.client.authentication.AuthenticationManager;
 import com.automate.client.messaging.IncomingPacketListenerService.IncomingPacketListenerServiceBinder;
-import com.automate.client.messaging.handlers.AuthenticationListener;
 import com.automate.client.messaging.handlers.AuthenticationMessageHandler;
 import com.automate.client.messaging.handlers.IMessageHandler;
 import com.automate.protocol.IncomingMessageParser;
@@ -28,7 +28,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
-public class MessagingService extends Service implements ServiceConnection, AuthenticationListener {
+public class MessagingService extends Service {
 
 	private final IBinder mBinder = new MessagingServiceBinder();
 	private final Api api = new Api();
@@ -38,17 +38,17 @@ public class MessagingService extends Service implements ServiceConnection, Auth
 	private String bindPort;
 	private IncomingPacketListenerService incomingPacketListenerService;
 	private String sessionKey;
+	private int majorVersion;
+	private int minorVersion;
 	
-	private Hashtable<Integer, PacketSentListener> deliveryListeners = new Hashtable<Integer, PacketSentListener>();
-	
-	private HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> handlers =
-			new HashMap<Message.MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>,?>>();
 	private MessageSendReceiver deliverReceiver;
 	
 	private int nextPacketId = 0;
 	private final Object packetIdLock = new Object();
 	
-	private IncomingMessageParser<ServerProtocolParameters> incomingMessageParser;
+	private AuthenticationManager mAuthenticationManager;
+	private PacketSentManager mPacketSentManager;
+	private PacketReceivedManager mPacketReceivedManager;
 	
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -61,14 +61,19 @@ public class MessagingService extends Service implements ServiceConnection, Auth
 	@Override
 	public void onCreate() {
 		super.onCreate();
+		HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> handlers = 
+				new HashMap<Message.MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>,?>>();
 		handlers.put(MessageType.AUTHENTICATION, new AuthenticationMessageHandler());
-		
+
 		HashMap<String, MessageSubParser<? extends Message<ServerProtocolParameters>, ServerProtocolParameters>> subParsers 
 			= new HashMap<String, MessageSubParser<? extends Message<ServerProtocolParameters>,ServerProtocolParameters>>();
 		subParsers.put(MessageType.AUTHENTICATION.toString(), new ServerAuthenticationMessageSubParser());
-		incomingMessageParser = new IncomingMessageParser<ServerProtocolParameters>(subParsers);
+		IncomingMessageParser<ServerProtocolParameters> incomingMessageParser = new IncomingMessageParser<ServerProtocolParameters>(subParsers);
 		
-		this.api.addAuthenticationListener(this);
+		this.mAuthenticationManager = new AuthenticationManager(this, 
+				(AuthenticationMessageHandler) handlers.get(MessageType.AUTHENTICATION), this.api);
+		this.mPacketSentManager = new PacketSentManager();
+		this.mPacketReceivedManager = new PacketReceivedManager(incomingMessageParser, handlers);
 	}
 
 	/* (non-Javadoc)
@@ -78,16 +83,31 @@ public class MessagingService extends Service implements ServiceConnection, Auth
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		Log.d(getClass().getName(), "Starting MessagingService.");
 		
-		receiveReceiver = new MessageReceiveReceiver(api);
+		receiveReceiver = new MessageReceiveReceiver(mPacketReceivedManager);
 		registerReceiver(receiveReceiver, new IntentFilter(PacketReceiveService.class.getName()));
 		
-		deliverReceiver = new MessageSendReceiver(api);
+		deliverReceiver = new MessageSendReceiver(mPacketSentManager);
 		registerReceiver(deliverReceiver, new IntentFilter(PacketDeliveryService.class.getName()));
 		
 		Intent listenerIntent = new Intent(this, IncomingPacketListenerService.class);
 		listenerIntent.putExtra(IncomingPacketListenerService.BIND_PORT, bindPort);
 		startService(listenerIntent);
-		bindService(listenerIntent, this, Context.BIND_AUTO_CREATE);
+		bindService(listenerIntent, new ServiceConnection() {
+
+			@Override
+			public void onServiceConnected(ComponentName name, IBinder service) {
+				Log.d(MessagingService.this.getClass().getName(), "Bound to IncomingPacketListeningService.");
+				incomingPacketListenerService = ((IncomingPacketListenerServiceBinder) service).getService();
+			}
+			
+			@Override
+			public void onServiceDisconnected(ComponentName name) {
+				Intent listenerIntent = new Intent(MessagingService.this, IncomingPacketListenerService.class);
+				listenerIntent.putExtra(IncomingPacketListenerService.BIND_PORT, bindPort);
+				startService(listenerIntent);
+			}
+			
+		}, Context.BIND_AUTO_CREATE);
 		return Service.START_NOT_STICKY;
 	}
 	
@@ -99,7 +119,7 @@ public class MessagingService extends Service implements ServiceConnection, Auth
 		super.onDestroy();
 		incomingPacketListenerService.stopSelf();
 		incomingPacketListenerService = null;
-		this.api.removeAuthenticationListener(this);
+		this.mAuthenticationManager.onDestroy();
 	}
 
 	/**
@@ -123,32 +143,13 @@ public class MessagingService extends Service implements ServiceConnection, Auth
 			Log.e(getClass().getName(), "Error formatting outgoing message.", e);
 		}
 		if(listener != null) {
-			deliveryListeners.put(packetId, listener);
+			mPacketSentManager.addDeliveryListener(packetId, listener);
 		}
 		startService(intent);
 	}
 	
 	public void sendMessage(Message<ClientProtocolParameters> message) {
 		sendMessage(message, null);
-	}
-	
-	/**
-	 * Called when a message is received from the server.
-	 * @param packet the message that was received.
-	 */
-	public void onPacketReceived(String packet) {
-		try {
-			Message<ServerProtocolParameters> message = incomingMessageParser.parse(packet);
-			IMessageHandler handler = handlers.get(message.getMessageType());
-			Object args = null;
-			switch (message.getMessageType()) {
-			default:
-				break;
-			}
-			handler.handleMessage(1, 0, message, args);
-		} catch (Throwable t) {
-			Log.e(getClass().getName(), "Error handling received packet.", t);
-		}
 	}
 	
 	public class MessagingServiceBinder extends Binder {
@@ -159,23 +160,16 @@ public class MessagingService extends Service implements ServiceConnection, Auth
 		
 	}
 	
-	@Override
-	public void onServiceConnected(ComponentName name, IBinder service) {
-		Log.d(MessagingService.this.getClass().getName(), "Bound to IncomingPacketListeningService.");
-		this.incomingPacketListenerService = ((IncomingPacketListenerServiceBinder) service).getService();
-	}
-	
-	@Override
-	public void onServiceDisconnected(ComponentName name) {
-		Intent listenerIntent = new Intent(this, IncomingPacketListenerService.class);
-		listenerIntent.putExtra(IncomingPacketListenerService.BIND_PORT, bindPort);
-		startService(listenerIntent);
-	}
-	
-	public class Api implements PacketSentListener, PacketReceivedListener {
+	public class Api {
 		
-		private int majorVersion;
-		private int minorVersion;
+		public <T> T getManager(Class<T> managerClass) {
+			if(managerClass.equals(AuthenticationManager.class)) {
+				return (T) mAuthenticationManager;
+			} else if(managerClass.equals(PacketSentManager.class)) {
+				return (T) mPacketSentManager;
+			}
+			return null;
+		}
 
 		public void sendMessage(Message<ClientProtocolParameters> message) {
 			MessagingService.this.sendMessage(message);
@@ -185,106 +179,18 @@ public class MessagingService extends Service implements ServiceConnection, Auth
 			MessagingService.this.sendMessage(message, listener);
 		}
 
-		@Override
-		public void onPacketReceived(String packet) {
-			MessagingService.this.onPacketReceived(packet);
-		}
-
-		@Override
-		public void onEmptyPacketReceived() {
-			
-		}
-
-		@Override
-		public void onReceiveIoException() {
-			
-		}
-
-		@Override
-		public void onNoSocketProvided() {
-			
-		}
-
-		@Override
-		public void onReceiveError() {
-			
-		}
-
 		public ClientProtocolParameters getProtocolParameters() {
 			return new ClientProtocolParameters(majorVersion, minorVersion, sessionKey);
-		}
-
-		public void addAuthenticationListener(AuthenticationListener listener) {
-			((AuthenticationMessageHandler)handlers.get(MessageType.AUTHENTICATION)).addListener(listener);
-		}
-		
-		public void removeAuthenticationListener(AuthenticationListener listener) {
-			((AuthenticationMessageHandler)handlers.get(MessageType.AUTHENTICATION)).removeListener(listener);
 		}
 
 		public String getSessionKey() {
 			return sessionKey;
 		}
 
-		@Override
-		public void onPacketSent(int packetId) {
-			PacketSentListener listener = deliveryListeners.get(packetId);
-			if(listener != null) {
-				listener.onPacketSent(packetId);
-			}
-			deliveryListeners.remove(packetId);
-		}
-
-		@Override
-		public void onSendIoException(int packetId) {
-			PacketSentListener listener = deliveryListeners.get(packetId);
-			if(listener != null) {
-				listener.onSendIoException(packetId);
-			}
-			deliveryListeners.remove(packetId);
-		}
-
-		@Override
-		public void onSendNoServerAddress(int packetId) {
-			PacketSentListener listener = deliveryListeners.get(packetId);
-			if(listener != null) {
-				listener.onSendNoServerAddress(packetId);
-			}
-			deliveryListeners.remove(packetId);
-		}
-
-		@Override
-		public void onSendNoServerPort(int packetId) {
-			PacketSentListener listener = deliveryListeners.get(packetId);
-			if(listener != null) {
-				listener.onSendNoServerPort(packetId);
-			}
-			deliveryListeners.remove(packetId);
-		}
-
-		@Override
-		public void onSendError(int packetId) {
-			PacketSentListener listener = deliveryListeners.get(packetId);
-			if(listener != null) {
-				listener.onSendError(packetId);
-			}
-			deliveryListeners.remove(packetId);
+		public void setSessionKey(String sessionKey) {
+			MessagingService.this.sessionKey = sessionKey;
 		}
 		
-	}
-
-	@Override
-	public void onAuthenticated(String sessionKey, String username) {
-		Log.d(getClass().getName(), "onAuthenticated(" + sessionKey + ", " + username + ")");
-		this.sessionKey = sessionKey;
-		String prefsKey = getResources().getString(R.string.prefs_credentials);
-		Editor editor = getSharedPreferences(prefsKey, MODE_PRIVATE).edit();
-		editor.putString(getResources().getString(R.string.prefs_credentials_username), username);
-		editor.commit();
-	}
-
-	@Override
-	public void onAuthenticationFailed(String failureMessage) {
 	}
 
 }
