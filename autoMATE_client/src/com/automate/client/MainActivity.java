@@ -1,6 +1,7 @@
 package com.automate.client;
 
 import com.automate.client.views.authentication.AuthenticationActivity;
+import com.automate.client.views.nodelist.NodeListActivity;
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -17,7 +18,9 @@ public class MainActivity extends Activity {
 		String username = preferences.getString(getResources().getString(R.string.prefs_credentials_username), null);
 		String password = preferences.getString(getResources().getString(R.string.prefs_credentials_password), null);
 		if(username == null || password == null) {
-			nextViewIntent = new Intent(MainActivity.this, AuthenticationActivity.class);
+			nextViewIntent = new Intent(this, AuthenticationActivity.class);
+		} else {
+			nextViewIntent = new Intent(this, NodeListActivity.class);
 		}
 		startActivity(nextViewIntent);
 		finish();
