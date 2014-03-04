@@ -13,11 +13,13 @@ import android.os.Message;
 import android.os.Messenger;
 import android.util.Log;
 
+import com.automate.client.AutoMateService;
+import com.automate.client.AutoMateService.AutoMateServiceBinder;
 import com.automate.client.R;
 import com.automate.client.authentication.AuthenticationListener;
 import com.automate.client.authentication.AuthenticationManager;
-import com.automate.client.messaging.MessagingService;
 import com.automate.client.messaging.PacketSentListener;
+import com.automate.client.messaging.managers.IMessageManager;
 
 public abstract class AbstractAuthenticationService extends Service implements AuthenticationListener, PacketSentListener {
 
@@ -25,22 +27,23 @@ public abstract class AbstractAuthenticationService extends Service implements A
 	public static final String MESSENGER = "messenger";
 	public static final int AUTHENTICATION_SUCCESSFUL = Activity.RESULT_FIRST_USER;
 	public static final int AUTHENTICATION_FAILED = Activity.RESULT_FIRST_USER + 1;
-	protected MessagingService.Api mMessagingServiceApi;
+	protected IMessageManager messageManager;
 	private Messenger mMessenger;
+	protected AutoMateService mAutoMateService;
 
 	private ServiceConnection connection = new ServiceConnection() {
 		@Override
 		public void onServiceDisconnected(ComponentName name) {
-			AbstractAuthenticationService.this.mMessagingServiceApi.getManager(AuthenticationManager.class)
+			AbstractAuthenticationService.this.mAutoMateService.getManager(AuthenticationManager.class)
 				.removeListener(AbstractAuthenticationService.this);
 			
-			AbstractAuthenticationService.this.mMessagingServiceApi = null;
+			AbstractAuthenticationService.this.mAutoMateService = null;
 		}
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			Log.d(this.getClass().getName(), "Bound to MessagingService.");
-			AbstractAuthenticationService.this.mMessagingServiceApi = ((MessagingService.MessagingServiceBinder)service).getApi();
-			AbstractAuthenticationService.this.mMessagingServiceApi.getManager(AuthenticationManager.class)
+			AbstractAuthenticationService.this.mAutoMateService = ((AutoMateServiceBinder)service).getService();
+			AbstractAuthenticationService.this.mAutoMateService.getManager(AuthenticationManager.class)
 				.addListener(AbstractAuthenticationService.this);
 		}
 	};
@@ -56,14 +59,14 @@ public abstract class AbstractAuthenticationService extends Service implements A
 
 	@Override
 	public IBinder onBind(Intent arg0) {
-		return mBinder ;
+		return mBinder;
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		Log.d(getClass().getName(), "Starting RegistrationService.");
 		this.mMessenger = intent.getParcelableExtra(MESSENGER);
-		bindService(new Intent(this, MessagingService.class), connection, Context.BIND_AUTO_CREATE);
+		bindService(new Intent(this, AutoMateService.class), connection, Context.BIND_AUTO_CREATE);
 		return Service.START_NOT_STICKY;
 	}
 

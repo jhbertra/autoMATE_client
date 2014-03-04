@@ -1,17 +1,19 @@
-package com.automate.client.messaging;
+package com.automate.client.messaging.managers;
 
 import java.util.HashMap;
 
 import android.util.Log;
 
+import com.automate.client.IManager;
 import com.automate.client.ListenerBinding;
+import com.automate.client.messaging.PacketReceivedListener;
 import com.automate.client.messaging.handlers.IMessageHandler;
 import com.automate.protocol.IncomingMessageParser;
 import com.automate.protocol.Message;
 import com.automate.protocol.Message.MessageType;
 import com.automate.protocol.server.ServerProtocolParameters;
 
-public class PacketReceivedManager extends ListenerBinding<PacketReceivedListener> implements PacketReceivedListener {
+public class PacketReceivedManager extends ListenerBinding<PacketReceivedListener> implements PacketReceivedListener, IManager {
 
 	private IncomingMessageParser<ServerProtocolParameters> mIncomingMessageParser;
 	private HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> mHandlers;
@@ -69,6 +71,18 @@ public class PacketReceivedManager extends ListenerBinding<PacketReceivedListene
 		for(PacketReceivedListener listener : listeners) {
 			listener.onReceiveError();
 		}
+	}
+
+	@Override
+	public void start() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

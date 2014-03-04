@@ -1,4 +1,4 @@
-package com.automate.client.messaging;
+package com.automate.client.messaging.services;
 
 import java.io.IOException;
 import java.io.PrintWriter;

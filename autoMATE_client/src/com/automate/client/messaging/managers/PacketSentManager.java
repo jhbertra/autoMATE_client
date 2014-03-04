@@ -1,13 +1,18 @@
-package com.automate.client.messaging;
+package com.automate.client.messaging.managers;
 
 import java.util.Hashtable;
 
 import com.automate.client.ListenerBinding;
+import com.automate.client.messaging.PacketSentListener;
 
-public class PacketSentManager extends ListenerBinding<PacketSentListener> implements PacketSentListener {
+public class PacketSentManager extends ListenerBinding<PacketSentListener> implements IPacketSentManager {
 
 	private Hashtable<Integer, PacketSentListener> deliveryListeners = new Hashtable<Integer, PacketSentListener>();
 	
+	/* (non-Javadoc)
+	 * @see com.automate.client.messaging.IPacketSentManager#addDeliveryListener(int, com.automate.client.messaging.PacketSentListener)
+	 */
+	@Override
 	public void addDeliveryListener(int packetId, PacketSentListener listener) {
 		if(listener != null && packetId > 0) {
 			deliveryListeners.put(packetId, listener);
@@ -72,6 +77,18 @@ public class PacketSentManager extends ListenerBinding<PacketSentListener> imple
 		for(PacketSentListener listener2 : listeners) {
 			listener2.onSendError(packetId);
 		}
+	}
+
+	@Override
+	public void start() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void stop() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

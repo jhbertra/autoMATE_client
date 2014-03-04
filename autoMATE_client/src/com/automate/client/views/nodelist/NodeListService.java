@@ -3,7 +3,7 @@ package com.automate.client.views.nodelist;
 import java.util.List;
 
 import com.automate.client.authentication.AuthenticationListener;
-import com.automate.client.messaging.MessagingService;
+import com.automate.client.messaging.managers.IMessageManager;
 import com.automate.protocol.client.messages.ClientNodeListMessage;
 import com.automate.protocol.models.Node;
 
@@ -34,7 +34,7 @@ public class NodeListService extends Service implements AuthenticationListener {
 	
 	private IBinder mBinder = new NodeListServiceBinder();
 	private Messenger mMessenger;
-	private MessagingService.Api mMessagingServiceApi;
+	private IMessageManager mMessageManager;
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
@@ -58,8 +58,8 @@ public class NodeListService extends Service implements AuthenticationListener {
 	}
 
 	private void downloadNodeList() {
-		ClientNodeListMessage nodeListMessage = new ClientNodeListMessage(mMessagingServiceApi.getProtocolParameters());
-		mMessagingServiceApi.sendMessage(nodeListMessage);
+		ClientNodeListMessage nodeListMessage = new ClientNodeListMessage(mMessageManager.getProtocolParameters());
+		mMessageManager.sendMessage(nodeListMessage);
 	}
 	
 	@Override

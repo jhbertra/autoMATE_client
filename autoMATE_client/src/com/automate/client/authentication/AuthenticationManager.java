@@ -6,27 +6,29 @@ import android.util.Log;
 
 import com.automate.client.ListenerBinding;
 import com.automate.client.R;
-import com.automate.client.messaging.MessagingService;
-import com.automate.client.messaging.MessagingService.Api;
 import com.automate.client.messaging.handlers.AuthenticationMessageHandler;
+import com.automate.client.messaging.managers.IMessageManager;
 
-public class AuthenticationManager extends ListenerBinding<AuthenticationListener > implements AuthenticationListener {
+public class AuthenticationManager extends ListenerBinding<AuthenticationListener > implements AuthenticationListener, IAuthenticationManager {
 
 	private AuthenticationMessageHandler mHandler;
 	private Context mContext;
-	private Api mMessagingServiceApi;
+	private IMessageManager mMessageManager;
 
-	public AuthenticationManager(Context context, AuthenticationMessageHandler handler, MessagingService.Api messagingServiceApi) {
+	public AuthenticationManager(Context context, AuthenticationMessageHandler handler, IMessageManager messageManager) {
 		this.mHandler = handler;
 		this.mContext = context;
-		this.mMessagingServiceApi = messagingServiceApi;
+		this.mMessageManager = messageManager;
 		this.mHandler.setListener(this);
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.automate.client.authentication.IAuthenticationManagerr#onAuthenticated(java.lang.String, java.lang.String)
+	 */
 	@Override
 	public void onAuthenticated(String sessionKey, String username) {
 		Log.i(getClass().getName(), "Client authenticated.");
-		mMessagingServiceApi.setSessionKey(sessionKey);
+		mMessageManager.setSessionKey(sessionKey);
 		String prefsKey = mContext.getResources().getString(R.string.prefs_credentials);
 		Editor editor = mContext.getSharedPreferences(prefsKey, Context.MODE_PRIVATE).edit();
 		editor.putString(mContext.getResources().getString(R.string.prefs_credentials_username), username);
@@ -36,15 +38,24 @@ public class AuthenticationManager extends ListenerBinding<AuthenticationListene
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see com.automate.client.authentication.IAuthenticationManagerr#onAuthenticationFailed(java.lang.String)
+	 */
 	@Override
 	public void onAuthenticationFailed(String failureMessage) {
-		mMessagingServiceApi.setSessionKey(null);
+		mMessageManager.setSessionKey(null);
 		for(AuthenticationListener listener : listeners) {
 			listener.onAuthenticationFailed(failureMessage);
 		}
 	}
 
-	public void onDestroy() {
+	@Override
+	public void start() {
+		
+	}
+
+	@Override
+	public void stop() {
 		mHandler.setListener(null);
 		listeners.clear();
 	}

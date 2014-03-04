@@ -1,5 +1,7 @@
 package com.automate.client.messaging;
 
+import com.automate.client.messaging.services.PacketReceiveService;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
