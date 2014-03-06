@@ -41,7 +41,7 @@
         <service android:name=".views.registration.RegistrationService"></service>
         <service android:name=".views.nodelist.NodeListService"></service>
         
-        <receiver android:name=".messaging.MessageReceiveReceiver"></receiver>
+        <receiver android:name="com.automate.client.managers.packet.PacketReceiveReceiver"></receiver>
     </application>
 
 </manifest>

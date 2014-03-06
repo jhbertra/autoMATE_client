@@ -1,4 +1,4 @@
-package com.automate.client.messaging;
+package com.automate.client.managers.packet;
 
 import java.io.IOException;
 import java.net.ServerSocket;

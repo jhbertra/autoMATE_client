@@ -16,10 +16,11 @@ import android.util.Log;
 import com.automate.client.AutoMateService;
 import com.automate.client.AutoMateService.AutoMateServiceBinder;
 import com.automate.client.R;
-import com.automate.client.authentication.AuthenticationListener;
-import com.automate.client.authentication.AuthenticationManager;
-import com.automate.client.messaging.PacketSentListener;
-import com.automate.client.messaging.managers.IMessageManager;
+import com.automate.client.managers.IListener;
+import com.automate.client.managers.authentication.AuthenticationListener;
+import com.automate.client.managers.authentication.IAuthenticationManager;
+import com.automate.client.managers.messaging.IMessageManager;
+import com.automate.client.managers.packet.PacketSentListener;
 
 public abstract class AbstractAuthenticationService extends Service implements AuthenticationListener, PacketSentListener {
 
@@ -34,8 +35,8 @@ public abstract class AbstractAuthenticationService extends Service implements A
 	private ServiceConnection connection = new ServiceConnection() {
 		@Override
 		public void onServiceDisconnected(ComponentName name) {
-			AbstractAuthenticationService.this.mAutoMateService.getManager(AuthenticationManager.class)
-				.removeListener(AbstractAuthenticationService.this);
+			AbstractAuthenticationService.this.mAutoMateService.getManager(IAuthenticationManager.class)
+				.unbind(AbstractAuthenticationService.this);
 			
 			AbstractAuthenticationService.this.mAutoMateService = null;
 		}
@@ -43,11 +44,18 @@ public abstract class AbstractAuthenticationService extends Service implements A
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			Log.d(this.getClass().getName(), "Bound to MessagingService.");
 			AbstractAuthenticationService.this.mAutoMateService = ((AutoMateServiceBinder)service).getService();
-			AbstractAuthenticationService.this.mAutoMateService.getManager(AuthenticationManager.class)
-				.addListener(AbstractAuthenticationService.this);
+			AbstractAuthenticationService.this.mAutoMateService.getManager(IAuthenticationManager.class)
+				.bind(AbstractAuthenticationService.this);
 		}
 	};
 	
+	@Override
+	public void onBind(Class<? extends IListener> listenerClass) {}
+	@Override
+	public void onUnbind(Class<? extends IListener> listenerClass) {}
+	@Override
+	public void onAuthenticating(String username) {}
+
 	/* (non-Javadoc)
 	 * @see android.app.Service#onDestroy()
 	 */

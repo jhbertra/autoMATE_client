@@ -1,0 +1,18 @@
+package com.automate.client.managers.command;
+
+import java.util.List;
+
+import com.automate.client.managers.IListenerBinder;
+import com.automate.client.managers.connectivity.ConnectionListener;
+import com.automate.client.managers.messaging.MessageListener;
+import com.automate.client.managers.node.NodeListener;
+
+public interface ICommandManager extends IListenerBinder<CommandListener>, MessageListener, NodeListener, ConnectionListener, CommandListener {
+	
+	public void sendCommand(Command command, long nodeId);
+	
+	public List<Command> getCommandList(long nodeId);
+
+	public void setCommandList(List<Command> commandList, long nodeId);
+	
+}

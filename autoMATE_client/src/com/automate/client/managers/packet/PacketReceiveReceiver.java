@@ -1,4 +1,4 @@
-package com.automate.client.messaging;
+package com.automate.client.managers.packet;
 
 import com.automate.client.messaging.services.PacketReceiveService;
 
@@ -7,12 +7,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-public class MessageReceiveReceiver extends BroadcastReceiver {
+public class PacketReceiveReceiver extends BroadcastReceiver {
 
-	private PacketReceivedListener mListener;
+	private IPacketManager mPacketManager;
 	
-	public MessageReceiveReceiver(PacketReceivedListener listener) {
-		this.mListener = listener;
+	public PacketReceiveReceiver(IPacketManager packetManager) {
+		this.mPacketManager = packetManager;
 	}
 
 	@Override
@@ -22,20 +22,20 @@ public class MessageReceiveReceiver extends BroadcastReceiver {
 		case Activity.RESULT_OK:
 			String packet = intent.getStringExtra(PacketReceiveService.MESSAGE);
 			if(packet != null) {
-				mListener.onPacketReceived(packet);
+				mPacketManager.receivePacket(packet);
 			}
 			break;
 		case PacketReceiveService.RESULT_EMPTY_MESSAGE:
-			mListener.onEmptyPacketReceived();
+			mPacketManager.onEmptyPacketReceived();
 			break;
 		case PacketReceiveService.RESULT_IO_EXCEPTION:
-			mListener.onReceiveIoException();
+			mPacketManager.onReceiveIoException();
 			break;
 		case PacketReceiveService.RESULT_NO_SOCKET_PROVIDED:
-			mListener.onNoSocketProvided();
+			mPacketManager.onNoSocketProvided();
 			break;
 		case PacketReceiveService.RESULT_UNKOWN_ERROR:
-			mListener.onReceiveError();
+			mPacketManager.onReceiveError();
 			break;
 		default:
 			break;

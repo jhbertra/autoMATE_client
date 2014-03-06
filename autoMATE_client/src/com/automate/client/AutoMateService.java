@@ -2,20 +2,12 @@ package com.automate.client;
 
 import java.util.HashMap;
 
-import com.automate.client.authentication.AuthenticationManager;
-import com.automate.client.messaging.PacketReceivedListener;
-import com.automate.client.messaging.handlers.AuthenticationMessageHandler;
+import com.automate.client.managers.IManager;
 import com.automate.client.messaging.handlers.IMessageHandler;
-import com.automate.client.messaging.managers.IMessageManager;
-import com.automate.client.messaging.managers.IPacketSentManager;
-import com.automate.client.messaging.managers.MessageManager;
-import com.automate.client.messaging.managers.PacketReceivedManager;
-import com.automate.client.messaging.managers.PacketSentManager;
 import com.automate.protocol.IncomingMessageParser;
 import com.automate.protocol.Message;
 import com.automate.protocol.Message.MessageType;
 import com.automate.protocol.MessageSubParser;
-import com.automate.protocol.client.messages.ClientAuthenticationMessage;
 import com.automate.protocol.server.ServerProtocolParameters;
 import com.automate.protocol.server.subParsers.ServerAuthenticationMessageSubParser;
 import com.automate.protocol.server.subParsers.ServerClientStatusUpdateMessageSubParser;
@@ -25,10 +17,7 @@ import com.automate.protocol.server.subParsers.ServerPingMessageSubParser;
 import com.automate.protocol.server.subParsers.ServerWarningMessageSubParser;
 
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -68,16 +57,6 @@ public class AutoMateService extends Service {
 		IncomingMessageParser<ServerProtocolParameters> incomingMessageParser = getIncomingMessageParser();
 		
 		HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> handlers = getMessageHandlers();
-		
-		PacketReceivedManager packetReceivedManager = new PacketReceivedManager(incomingMessageParser, handlers);
-		IPacketSentManager packetSentManager = new PacketSentManager();
-		IMessageManager messageManager = new MessageManager(this, packetReceivedManager, packetSentManager, serverAddress, 
-				serverPort, bindPort, majorVersion, minorVersion);
-		
-		managers.put(PacketReceivedManager.class, packetReceivedManager);
-		managers.put(IPacketSentManager.class, packetSentManager);
-		managers.put(AuthenticationManager.class, 
-				new AuthenticationManager(this, (AuthenticationMessageHandler) handlers.get(MessageType.AUTHENTICATION), messageManager));
 	}
 
 	HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> getMessageHandlers() {

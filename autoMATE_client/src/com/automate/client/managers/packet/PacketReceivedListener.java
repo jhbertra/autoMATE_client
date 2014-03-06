@@ -1,6 +1,6 @@
-package com.automate.client.messaging;
+package com.automate.client.managers.packet;
 
-import com.automate.client.IListener;
+import com.automate.client.managers.IListener;
 
 public interface PacketReceivedListener extends IListener {
 	

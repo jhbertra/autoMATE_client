@@ -2,10 +2,16 @@ package com.automate.client.views.nodelist;
 
 import java.util.List;
 
-import com.automate.client.authentication.AuthenticationListener;
-import com.automate.client.messaging.managers.IMessageManager;
+import com.automate.client.managers.IListener;
+import com.automate.client.managers.connectivity.ConnectionListener;
+import com.automate.client.managers.messaging.IMessageManager;
+import com.automate.client.managers.node.INodeManager;
+import com.automate.client.managers.node.NodeListener;
+import com.automate.client.managers.warning.IWarningManager;
+import com.automate.client.managers.warning.WarningListener;
 import com.automate.protocol.client.messages.ClientNodeListMessage;
 import com.automate.protocol.models.Node;
+import com.automate.protocol.models.Warning;
 
 import android.app.Service;
 import android.content.Intent;
@@ -16,17 +22,16 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 
-public class NodeListService extends Service implements AuthenticationListener {
+public class NodeListService extends Service implements ConnectionListener, NodeListener, WarningListener {
 
 	public static final int NODE_ADDED = 0;
 	public static final int NODES_ADDED = 1;
 	public static final int NODE_REMOVED = 2;
-	public static final int AUTHENTICATING = 3;
+	public static final int CONNECTING = 3;
 	public static final int DOWNLOADING_LIST = 4;
 	public static final int NO_NODES = 5;
-	public static final int AUTHENTICATION_FAILED = 6;
-	public static final int DISCONNECTED = 7;
-	public static final int WARNING_RECEIVED = 8;
+	public static final int DISCONNECTED = 6;
+	public static final int WARNING_RECEIVED = 7;
 	
 	public static final String MESSENGER = "messenger";
 	private static final String NODE_ID = "node id";
@@ -35,11 +40,12 @@ public class NodeListService extends Service implements AuthenticationListener {
 	private IBinder mBinder = new NodeListServiceBinder();
 	private Messenger mMessenger;
 	private IMessageManager mMessageManager;
+	private INodeManager mNodeManager;
+	private IWarningManager mWarningManager;
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		mMessenger = intent.getParcelableExtra(MESSENGER);
-		
 		return START_NOT_STICKY;
 	}
 
@@ -60,16 +66,6 @@ public class NodeListService extends Service implements AuthenticationListener {
 	private void downloadNodeList() {
 		ClientNodeListMessage nodeListMessage = new ClientNodeListMessage(mMessageManager.getProtocolParameters());
 		mMessageManager.sendMessage(nodeListMessage);
-	}
-	
-	@Override
-	public void onAuthenticated(String sessionKey, String username) {
-		downloadNodeList();
-	}
-
-	@Override
-	public void onAuthenticationFailed(String failureMessage) {
-		notifyAuthenticationFailed();
 	}
 	
 	private void notifyNodeAdded(Node node) {
@@ -105,9 +101,9 @@ public class NodeListService extends Service implements AuthenticationListener {
 		}
 	}
 
-	private void notifyAuthenticating() {
+	private void notifyConnecting() {
 		Message message = new Message();
-		message.what = AUTHENTICATING;
+		message.what = CONNECTING;
 		try {
 			mMessenger.send(message);
 		} catch (RemoteException e) {
@@ -135,16 +131,6 @@ public class NodeListService extends Service implements AuthenticationListener {
 		}
 	}
 
-	private void notifyAuthenticationFailed() {
-		Message message = new Message();
-		message.what = AUTHENTICATION_FAILED;
-		try {
-			mMessenger.send(message);
-		} catch (RemoteException e) {
-			// ignore, remote messaging not used.
-		}
-	}
-
 	private void notifyDisconnected() {
 		Message message = new Message();
 		message.what = DISCONNECTED;
@@ -155,18 +141,43 @@ public class NodeListService extends Service implements AuthenticationListener {
 		}
 	}
 
-	private void notifyWarningReceived(long nodeId, String warning) {
+	private void notifyWarningReceived(long nodeId, Warning warning) {
 		Message message = new Message();
 		message.what = DOWNLOADING_LIST;
+		message.obj = warning;
 		Bundle data = new Bundle();
 		data.putLong(NODE_ID, nodeId);
-		data.putString(WARNING, warning);
 		message.setData(data);
 		try {
 			mMessenger.send(message);
 		} catch (RemoteException e) {
 			// ignore, remote messaging not used.
 		}
+	}
+
+	@Override
+	public void onBind(Class<? extends IListener> listenerClass) {}
+
+	@Override
+	public void onUnbind(Class<? extends IListener> listenerClass) {
+		if(listenerClass.equals(ConnectionListener.class)) {
+			notifyDisconnected();
+		}
+	}
+
+	@Override
+	public void onConnecting() {
+		notifyConnecting();
+	}
+
+	@Override
+	public void onConnected() {
+		downloadNodeList();
+	}
+
+	@Override
+	public void onDisconnected() {
+		notifyDisconnected();
 	}
 	
 	public class NodeListServiceBinder extends Binder {
@@ -175,6 +186,41 @@ public class NodeListService extends Service implements AuthenticationListener {
 			return NodeListService.this;
 		}
 		
+	}
+
+	@Override
+	public void onWarningReceived(long nodeId, Warning warning) {
+		notifyWarningReceived(nodeId, warning);
+	}
+
+	@Override
+	public void onNodeAdded(Node node) {
+		notifyNodeAdded(node);
+	}
+
+	@Override
+	public void onNodesAdded(List<Node> nodes) {
+		notifyNodesAdded(nodes);
+	}
+
+	@Override
+	public void onNodeRemoved(Node node) {
+		notifyNodeRemoved(node);
+	}
+
+	@Override
+	public void onNodeListDownload() {
+		notifyDownloadingList();
+	}
+
+	@Override
+	public void onNodeListDownloadFailed() {
+		notifyDisconnected();
+	}
+
+	@Override
+	public void afterNodeListDownload(List<Node> nodes) {
+		onNodesAdded(nodes);
 	}
 	
 }

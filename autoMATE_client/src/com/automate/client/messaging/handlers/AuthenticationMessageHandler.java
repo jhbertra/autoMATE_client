@@ -2,7 +2,7 @@ package com.automate.client.messaging.handlers;
 
 import android.util.Log;
 
-import com.automate.client.authentication.AuthenticationListener;
+import com.automate.client.managers.authentication.AuthenticationListener;
 import com.automate.protocol.Message;
 import com.automate.protocol.server.ServerProtocolParameters;
 import com.automate.protocol.server.messages.ServerAuthenticationMessage;

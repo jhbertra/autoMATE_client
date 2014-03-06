@@ -1,7 +1,7 @@
 package com.automate.client.views.registration;
 
 import com.automate.client.R;
-import com.automate.client.messaging.managers.IMessageManager;
+import com.automate.client.managers.messaging.IMessageManager;
 import com.automate.client.views.AbstractAuthenticationService;
 import com.automate.protocol.client.messages.ClientRegistrationMessage;
 
