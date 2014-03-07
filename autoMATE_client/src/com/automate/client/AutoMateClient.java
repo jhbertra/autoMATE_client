@@ -31,8 +31,7 @@ public class AutoMateClient extends Application {
 	@Override
 	public void onTerminate() {
 		super.onTerminate();
+		mService.stopSelf();
 	}
 
-	
-	
 }

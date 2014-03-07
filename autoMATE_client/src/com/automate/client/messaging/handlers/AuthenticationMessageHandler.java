@@ -11,6 +11,10 @@ public class AuthenticationMessageHandler implements IMessageHandler<ServerAuthe
 
 	private AuthenticationListener listener;
 	
+	public AuthenticationMessageHandler(AuthenticationListener listener) {
+		this.listener = listener;
+	}
+
 	@Override
 	public Message<ServerProtocolParameters> handleMessage(int majorVersion, int minorVersion, ServerAuthenticationMessage message, Void params) {
 		int responseCode = message.responseCode;

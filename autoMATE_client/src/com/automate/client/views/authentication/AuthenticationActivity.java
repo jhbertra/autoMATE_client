@@ -4,9 +4,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.automate.client.R;
+import com.automate.client.views.authentication.AbstractAuthenticationService.AbstractAuthenticationServiceBinder;
 import com.automate.client.views.nodelist.NodeListActivity;
-import com.automate.client.views.AbstractAuthenticationService;
-import com.automate.client.views.AbstractAuthenticationService.AbstractAuthenticationServiceBinder;
 import com.automate.client.views.registration.RegistrationActivity;
 
 import android.app.Activity;

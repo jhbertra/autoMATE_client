@@ -2,19 +2,36 @@ package com.automate.client;
 
 import java.util.HashMap;
 
+import com.automate.client.managers.IListener;
 import com.automate.client.managers.IManager;
-import com.automate.client.messaging.handlers.IMessageHandler;
+import com.automate.client.managers.authentication.AuthenticationManager;
+import com.automate.client.managers.authentication.IAuthenticationManager;
+import com.automate.client.managers.command.CommandManager;
+import com.automate.client.managers.command.ICommandManager;
+import com.automate.client.managers.connectivity.ConnectionManager;
+import com.automate.client.managers.connectivity.IConnectionManager;
+import com.automate.client.managers.messaging.IMessageManager;
+import com.automate.client.managers.messaging.MessageListener;
+import com.automate.client.managers.messaging.MessageManager;
+import com.automate.client.managers.node.INodeManager;
+import com.automate.client.managers.node.NodeManager;
+import com.automate.client.managers.packet.IPacketManager;
+import com.automate.client.managers.packet.IncomingPacketListenerThread;
+import com.automate.client.managers.packet.PacketManager;
+import com.automate.client.managers.security.ISecurityManager;
+import com.automate.client.managers.security.SecurityManager;
+import com.automate.client.managers.status.IStatusManager;
+import com.automate.client.managers.status.StatusManager;
+import com.automate.client.managers.warning.IWarningManager;
+import com.automate.client.managers.warning.WarningManager;
+import com.automate.client.messaging.handlers.*;
 import com.automate.protocol.IncomingMessageParser;
 import com.automate.protocol.Message;
 import com.automate.protocol.Message.MessageType;
 import com.automate.protocol.MessageSubParser;
+import com.automate.protocol.client.ClientProtocolParameters;
 import com.automate.protocol.server.ServerProtocolParameters;
-import com.automate.protocol.server.subParsers.ServerAuthenticationMessageSubParser;
-import com.automate.protocol.server.subParsers.ServerClientStatusUpdateMessageSubParser;
-import com.automate.protocol.server.subParsers.ServerCommandMessageSubParser;
-import com.automate.protocol.server.subParsers.ServerNodeListMessageSubParser;
-import com.automate.protocol.server.subParsers.ServerPingMessageSubParser;
-import com.automate.protocol.server.subParsers.ServerWarningMessageSubParser;
+import com.automate.protocol.server.subParsers.*;
 
 import android.app.Service;
 import android.content.Intent;
@@ -22,23 +39,21 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
-public class AutoMateService extends Service {
+public class AutoMateService extends Service implements MessageListener {
 
 	private AutoMateServiceBinder mBinder;
 	
 	private boolean started;
 
-	private HashMap<Class<? extends IManager>, IManager> managers;
+	private ConnectionParameters parameters;
 
-	private String serverAddress;
-
-	private String serverPort;
-
-	private int bindPort;
-
+	private Managers managers;
+	
 	private int majorVersion;
 
 	private int minorVersion;
+
+	private HashMap<MessageType, IMessageHandler> handlers;
 	
 	/* (non-Javadoc)
 	 * @see android.app.Service#onCreate()
@@ -48,24 +63,47 @@ public class AutoMateService extends Service {
 		super.onCreate();
 		Log.d(getClass().getName(), "Creating AutoMateService.");
 		mBinder = new AutoMateServiceBinder();
-		initManagers();
+		initSubsystems();
 	}
 	
-	private void initManagers() {
-		managers = new HashMap<Class<? extends IManager>, IManager>();
+	private void initSubsystems() {
+		IncomingMessageParser<ServerProtocolParameters> parser = getIncomingMessageParser();
+		IncomingPacketListenerThread listenerThread = new IncomingPacketListenerThread(this, 6300);
 		
-		IncomingMessageParser<ServerProtocolParameters> incomingMessageParser = getIncomingMessageParser();
+		ISecurityManager securityManager = new SecurityManager();
+		IConnectionManager connectionManager = new ConnectionManager(this);
+		IPacketManager packetManager = new PacketManager(this, listenerThread, "127.0.0.1", "6300", 6300, securityManager);
+		IMessageManager messageManager = new MessageManager(packetManager, connectionManager, parser, majorVersion, minorVersion);
+		IAuthenticationManager authenticationManager = new AuthenticationManager(this, messageManager, connectionManager);
+		INodeManager nodeManager = new NodeManager(messageManager, connectionManager);
+		IStatusManager statusManager = new StatusManager(messageManager, connectionManager, nodeManager);
+		IWarningManager warningManager = new WarningManager(connectionManager, nodeManager, messageManager);
+		ICommandManager commandManager = new CommandManager(connectionManager, nodeManager, messageManager);
 		
-		HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> handlers = getMessageHandlers();
+		this.managers = new Managers(authenticationManager, 
+				commandManager, 
+				connectionManager, 
+				messageManager, 
+				nodeManager, 
+				packetManager, 
+				securityManager, 
+				statusManager, 
+				warningManager);
+		
+		createMessageHandlers();
 	}
 
-	HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> getMessageHandlers() {
-		HashMap<MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>, ?>> handlers =
-				new HashMap<Message.MessageType, IMessageHandler<? extends Message<ServerProtocolParameters>,?>>();
-		return handlers;
+	private void createMessageHandlers() {
+		handlers = new HashMap<Message.MessageType, IMessageHandler>();
+		handlers.put(MessageType.AUTHENTICATION, new AuthenticationMessageHandler(managers.authenticationManager));
+		handlers.put(MessageType.NODE_LIST, new NodeListMessageHandler(managers.nodeManager));
+		handlers.put(MessageType.PING, new PingMessageHandler(managers.connectionManager));
+		handlers.put(MessageType.COMMAND_CLIENT, new CommandMessageHandler(managers.commandManager));
+		handlers.put(MessageType.STATUS_UPDATE_CLIENT, new StatusUpdateMessageHandler(managers.statusManager));
+		handlers.put(MessageType.WARNING_CLIENT, new WarningMessageHandler(managers.warningManager));
 	}
 
-	IncomingMessageParser<ServerProtocolParameters> getIncomingMessageParser() {
+	private IncomingMessageParser<ServerProtocolParameters> getIncomingMessageParser() {
 		HashMap<String, MessageSubParser<? extends Message<ServerProtocolParameters>, ServerProtocolParameters>> subParsers = 
 				new HashMap<String, MessageSubParser<? extends Message<ServerProtocolParameters>,ServerProtocolParameters>>();
 		subParsers.put(MessageType.AUTHENTICATION.toString(), new ServerAuthenticationMessageSubParser());
@@ -85,29 +123,16 @@ public class AutoMateService extends Service {
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		Log.d(getClass().getName(), "Starting AutoMateService.");
 		if(started) return START_STICKY;
-		// start managers
-		/*
-		startService(new Intent(this, MessagingService.class));
-		bindService(new Intent(this, MessagingService.class), new ServiceConnection() {
-			@Override
-			public void onServiceDisconnected(ComponentName name) {
-			}
-			@Override
-			public void onServiceConnected(ComponentName name, IBinder service) {
-				Log.d(AutoMateService.this.getClass().getName(), "Bound to MessagingService.");
-				mMessagingServiceApi = ((MessagingServiceBinder) service).getApi();
-				SharedPreferences preferences = getSharedPreferences(getResources().getString(R.string.prefs_credentials), MODE_PRIVATE);
-				String username = preferences.getString(getResources().getString(R.string.prefs_credentials_username), null);
-				String password = preferences.getString(getResources().getString(R.string.prefs_credentials_password), null);
-				String currentSessionKey = mMessagingServiceApi.getSessionKey();
-				if(username != null && password != null && currentSessionKey == null) {
-					ClientAuthenticationMessage message = new ClientAuthenticationMessage(mMessagingServiceApi.getProtocolParameters(), 
-							username, password);
-					mMessagingServiceApi.sendMessage(message);
-				}
-			}
-		}, BIND_AUTO_CREATE);
-		 */
+		managers.authenticationManager.start();
+		managers.commandManager.start();
+		managers.connectionManager.start();
+		managers.messageManager.start();
+		managers.messageManager.bind(this);
+		managers.nodeManager.start();
+		managers.packetManager.start();
+		managers.securityManager.start();
+		managers.statusManager.start();
+		managers.warningManager.start();
 		started = true;
 		return START_STICKY;
 	}
@@ -117,8 +142,8 @@ public class AutoMateService extends Service {
 		return mBinder;
 	}
 	
-	public <T extends IManager> T getManager(Class<T> managerClass) {
-		return (T) managers.get(managerClass);
+	public <T extends IManager<?>> T getManager(Class<T> managerClass) {
+		return managers.getManager(managerClass);
 	}
 	
 	public class AutoMateServiceBinder extends Binder {
@@ -128,5 +153,22 @@ public class AutoMateService extends Service {
 		}
 		
 	}
+
+	@Override
+	public void onBind(Class<? extends IListener> listenerClass) {}
+	@Override
+	public void onUnbind(Class<? extends IListener> listenerClass) {}
+
+	@Override
+	public void onMessageReceived(Message<ServerProtocolParameters> message) {
+		handlers.get(message.getMessageType()).handleMessage(majorVersion, minorVersion, message, getParams(message));
+	}
+
+	private Object getParams(Message<ServerProtocolParameters> message) {
+		return null;
+	}
+
+	@Override
+	public void onMessageSent(Message<ClientProtocolParameters> message) {}
 
 }

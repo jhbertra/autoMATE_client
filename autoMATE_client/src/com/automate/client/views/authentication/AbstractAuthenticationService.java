@@ -1,19 +1,15 @@
-package com.automate.client.views;
+package com.automate.client.views.authentication;
 
 import android.app.Activity;
-import android.app.Service;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences.Editor;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.Messenger;
 import android.util.Log;
 
-import com.automate.client.AutoMateService;
 import com.automate.client.AutoMateService.AutoMateServiceBinder;
 import com.automate.client.R;
 import com.automate.client.managers.IListener;
@@ -21,16 +17,14 @@ import com.automate.client.managers.authentication.AuthenticationListener;
 import com.automate.client.managers.authentication.IAuthenticationManager;
 import com.automate.client.managers.messaging.IMessageManager;
 import com.automate.client.managers.packet.PacketSentListener;
+import com.automate.client.views.AbstractViewService;
 
-public abstract class AbstractAuthenticationService extends Service implements AuthenticationListener, PacketSentListener {
+public abstract class AbstractAuthenticationService extends AbstractViewService implements AuthenticationListener, PacketSentListener {
 
 	private final IBinder mBinder = new AbstractAuthenticationServiceBinder();
-	public static final String MESSENGER = "messenger";
 	public static final int AUTHENTICATION_SUCCESSFUL = Activity.RESULT_FIRST_USER;
 	public static final int AUTHENTICATION_FAILED = Activity.RESULT_FIRST_USER + 1;
 	protected IMessageManager messageManager;
-	private Messenger mMessenger;
-	protected AutoMateService mAutoMateService;
 
 	private ServiceConnection connection = new ServiceConnection() {
 		@Override
@@ -71,17 +65,7 @@ public abstract class AbstractAuthenticationService extends Service implements A
 	}
 
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		Log.d(getClass().getName(), "Starting RegistrationService.");
-		this.mMessenger = intent.getParcelableExtra(MESSENGER);
-		bindService(new Intent(this, AutoMateService.class), connection, Context.BIND_AUTO_CREATE);
-		return Service.START_NOT_STICKY;
-	}
-
-	@Override
-	public void onPacketSent(int packetId) {
-		
-	}
+	public void onPacketSent(int packetId) {}
 
 	@Override
 	public void onSendIoException(int packetId) {
@@ -153,6 +137,16 @@ public abstract class AbstractAuthenticationService extends Service implements A
 		editor.commit();
 	}
 	
+	@Override
+	protected void onServiceConnected() {
+		this.mAutoMateService.getManager(IAuthenticationManager.class).bind(this);
+	}
+
+	@Override
+	protected void onServiceDisconnected() {
+		this.mAutoMateService.getManager(IAuthenticationManager.class).unbind(this);
+	}
+
 	public class AbstractAuthenticationServiceBinder extends Binder {
 		public AbstractAuthenticationService getService() {
 			return AbstractAuthenticationService.this;

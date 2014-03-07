@@ -48,12 +48,6 @@ public class PacketManager extends ManagerBase<PacketListener> implements IPacke
 		this.mTemporaryListeners = new HashMap<Integer, PacketSentListener>();
 	}
 
-	public PacketManager(ISecurityManager securityManager) {
-		super(PacketListener.class);
-		this.mSecurityManager = securityManager;
-		this.mTemporaryListeners = new HashMap<Integer, PacketSentListener>();
-	}
-
 	@Override
 	public void onPacketReceived(String packet) {
 		synchronized (mListeners) {

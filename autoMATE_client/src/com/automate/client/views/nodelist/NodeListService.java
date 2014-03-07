@@ -9,20 +9,19 @@ import com.automate.client.managers.node.INodeManager;
 import com.automate.client.managers.node.NodeListener;
 import com.automate.client.managers.warning.IWarningManager;
 import com.automate.client.managers.warning.WarningListener;
+import com.automate.client.views.AbstractViewService;
 import com.automate.protocol.client.messages.ClientNodeListMessage;
 import com.automate.protocol.models.Node;
 import com.automate.protocol.models.Warning;
 
-import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.Messenger;
 import android.os.RemoteException;
 
-public class NodeListService extends Service implements ConnectionListener, NodeListener, WarningListener {
+public class NodeListService extends AbstractViewService implements ConnectionListener, NodeListener, WarningListener {
 
 	public static final int NODE_ADDED = 0;
 	public static final int NODES_ADDED = 1;
@@ -33,29 +32,17 @@ public class NodeListService extends Service implements ConnectionListener, Node
 	public static final int DISCONNECTED = 6;
 	public static final int WARNING_RECEIVED = 7;
 	
-	public static final String MESSENGER = "messenger";
 	private static final String NODE_ID = "node id";
 	private static final String WARNING = "warning";
 	
 	private IBinder mBinder = new NodeListServiceBinder();
-	private Messenger mMessenger;
 	private IMessageManager mMessageManager;
 	private INodeManager mNodeManager;
 	private IWarningManager mWarningManager;
-	
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		mMessenger = intent.getParcelableExtra(MESSENGER);
-		return START_NOT_STICKY;
-	}
 
 	@Override
 	public IBinder onBind(Intent intent) {
 		return mBinder;
-	}
-	
-	public void registerListeners() {
-		
 	}
 	
 	@Override
@@ -221,6 +208,26 @@ public class NodeListService extends Service implements ConnectionListener, Node
 	@Override
 	public void afterNodeListDownload(List<Node> nodes) {
 		onNodesAdded(nodes);
+	}
+
+	@Override
+	protected void onServiceConnected() {
+		mNodeManager = mAutoMateService.getManager(INodeManager.class);
+		mMessageManager = mAutoMateService.getManager(IMessageManager.class);
+		mWarningManager = mAutoMateService.getManager(IWarningManager.class);
+		
+		mNodeManager.bind(this);
+		mWarningManager.bind(this);
+	}
+
+	@Override
+	protected void onServiceDisconnected() {
+		mNodeManager.unbind(this);
+		mWarningManager.unbind(this);
+		
+		mNodeManager = null;
+		mMessageManager = null;
+		mWarningManager = null;
 	}
 	
 }

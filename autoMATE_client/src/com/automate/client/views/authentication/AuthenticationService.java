@@ -2,7 +2,6 @@ package com.automate.client.views.authentication;
 
 import com.automate.client.R;
 import com.automate.client.managers.messaging.IMessageManager;
-import com.automate.client.views.AbstractAuthenticationService;
 import com.automate.protocol.client.messages.ClientAuthenticationMessage;
 
 import android.content.SharedPreferences.Editor;
