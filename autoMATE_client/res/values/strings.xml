@@ -13,6 +13,9 @@
     <string name="button_ok">ok</string>
     <string name="button_signIn">Sign In</string>
     <string name="button_createNewAccount">Create New Account</string>
+    <string name="button_look_for_nodes">Scan for nearby devices</string>
+    <string name="button_commands">Commands</string>
+    <string name="button_status">Status</string>
     <string name="prefs_credentials">com.automate.client.CredentialsPreferences</string>
     <string name="prefs_credentials_username">com.automate.client.CredentialsPreferences.username</string>
     <string name="prefs_credentials_password">com.automate.client.CredentialsPreferences.password</string>
@@ -23,5 +26,9 @@
     <string name="reg_registering">Creating new account...</string>
     <string name="reg_title_failed">Registration Failed</string>
     <string name="reg_failed">Unable to create account.</string>
+    <string name="node_list_no_nodes">You don\'t have any devices!</string>
+    <string name="node_list_disconnected">You are not connected.</string>
+    <string name="node_list_downloading">Downloading node list...</string>
+    <string name="node_list_connecting">Connecting...</string>
 
 </resources>

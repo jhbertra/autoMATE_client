@@ -134,6 +134,9 @@ public class NodeManager extends ManagerBase<NodeListener> implements INodeManag
 	@Override
 	public void afterNodeListDownload(List<Node> nodes) {
 		this.mDownloadState = DownloadState.DOWNLOAD_COMPLETE;
+		for(Node node : nodes) {
+			mNodes.put(node.id, node);
+		}
 		synchronized (mListeners) {
 			for(NodeListener listener : mListeners) {
 				listener.afterNodeListDownload(nodes);

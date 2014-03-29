@@ -29,9 +29,10 @@
         <activity android:name="com.automate.client.views.authentication.AuthenticationActivity"/>
         <activity android:name="com.automate.client.views.registration.RegistrationActivity"/>
         <activity android:name="com.automate.client.views.nodelist.NodeListActivity"/>
+        <activity android:name="com.automate.client.views.node.NodeActivity"/>
         
-        <service android:name="com.automate.client.messaging.services.PacketDeliveryService"></service>
-        <service android:name="com.automate.client.messaging.services.PacketReceiveService"></service>
+        <service android:name="com.automate.client.packet.services.PacketDeliveryService"></service>
+        <service android:name="com.automate.client.packet.services.PacketReceiveService"></service>
         <service android:name=".AutoMateService">
             <intent-filter >
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
@@ -40,8 +41,13 @@
         <service android:name=".views.authentication.AuthenticationService"></service>
         <service android:name=".views.registration.RegistrationService"></service>
         <service android:name=".views.nodelist.NodeListService"></service>
+        <service android:name="com.automate.client.views.node.NodeService"/>
         
         <receiver android:name="com.automate.client.managers.packet.PacketReceiveReceiver"></receiver>
+        <receiver android:name=".managers.connectivity.DisconnectReceiver"></receiver>
+        <receiver android:name=".managers.authentication.ReconnectReceiver"></receiver>
+        <service android:name=".managers.connectivity.DisconnectService"></service>
+        <service android:name=".managers.authentication.ReconnectService"></service>
     </application>
 
 </manifest>

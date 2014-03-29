@@ -1,6 +1,6 @@
 package com.automate.client.managers.packet;
 
-import com.automate.client.messaging.services.PacketReceiveService;
+import com.automate.client.packet.services.PacketReceiveService;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;

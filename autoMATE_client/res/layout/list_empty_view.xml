@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_margin="8dp"
     android:orientation="vertical" >
 
     <TextView
@@ -11,14 +12,15 @@
         android:layout_gravity="center_horizontal"
         android:layout_weight="0.5"
         android:gravity="bottom"
+        android:text="@string/node_list_no_nodes"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
-    <ProgressBar
-        android:id="@+id/progressBar1"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="wrap_content"
+    <Button
+        android:id="@+id/node_command_button"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal|top" />
+        android:onClick="onScanPressed"
+        android:text="@string/button_look_for_nodes" />
 
     <LinearLayout
         android:layout_width="match_parent"

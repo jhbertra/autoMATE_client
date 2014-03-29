@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.automate.client.managers.IListener;
 import com.automate.client.managers.connectivity.ConnectionListener;
+import com.automate.client.managers.connectivity.IConnectionManager;
 import com.automate.client.managers.messaging.IMessageManager;
 import com.automate.client.managers.node.INodeManager;
 import com.automate.client.managers.node.NodeListener;
@@ -39,6 +40,7 @@ public class NodeListService extends AbstractViewService implements ConnectionLi
 	private IMessageManager mMessageManager;
 	private INodeManager mNodeManager;
 	private IWarningManager mWarningManager;
+	private IConnectionManager mConnectionManager;
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -46,8 +48,33 @@ public class NodeListService extends AbstractViewService implements ConnectionLi
 	}
 	
 	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		int retVal = super.onStartCommand(intent, flags, startId);
+		Message message = new Message();
+		message.what = DISCONNECTED;
+		try {
+			this.mMessenger.send(message);
+		} catch (RemoteException e) {}
+		return retVal;
+	}
+
+	@Override
 	public void onDestroy() {
 		super.onDestroy();
+		if(mNodeManager != null) {
+			mNodeManager.unbind(this);
+			mNodeManager = null;
+		}
+		if(mWarningManager != null) {
+			mWarningManager.unbind(this);
+			mWarningManager = null;
+		}
+		if(mConnectionManager != null) {
+			mConnectionManager.unbind(this);
+			mConnectionManager = null;
+		}
+		
+		mMessageManager = null;
 	}
 
 	private void downloadNodeList() {
@@ -215,19 +242,23 @@ public class NodeListService extends AbstractViewService implements ConnectionLi
 		mNodeManager = mAutoMateService.getManager(INodeManager.class);
 		mMessageManager = mAutoMateService.getManager(IMessageManager.class);
 		mWarningManager = mAutoMateService.getManager(IWarningManager.class);
+		mConnectionManager = mAutoMateService.getManager(IConnectionManager.class);
 		
 		mNodeManager.bind(this);
 		mWarningManager.bind(this);
+		mConnectionManager.bind(this);
 	}
 
 	@Override
 	protected void onServiceDisconnected() {
 		mNodeManager.unbind(this);
 		mWarningManager.unbind(this);
+		mConnectionManager.unbind(this);
 		
 		mNodeManager = null;
 		mMessageManager = null;
 		mWarningManager = null;
+		mConnectionManager = null;
 	}
 	
 }

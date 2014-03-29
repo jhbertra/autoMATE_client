@@ -9,7 +9,7 @@ import com.automate.client.managers.node.NodeListener;
 
 public interface ICommandManager extends IManager<CommandListener>, MessageListener, NodeListener, ConnectionListener, CommandListener {
 	
-	public void sendCommand(Command command, long nodeId);
+	public long sendCommand(Command command, long nodeId);
 	
 	public List<Command> getCommandList(long nodeId);
 

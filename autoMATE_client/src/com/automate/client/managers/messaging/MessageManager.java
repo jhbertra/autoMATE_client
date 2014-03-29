@@ -1,12 +1,10 @@
 package com.automate.client.managers.messaging;
 
-import android.util.Log;
+import android.util.Log; 
 
 import com.automate.client.managers.IListener;
 import com.automate.client.managers.ManagerBase;
-import com.automate.client.managers.connectivity.ConnectionListener;
 import com.automate.client.managers.connectivity.IConnectionManager;
-import com.automate.client.managers.connectivity.ConnectionManager.ConnectedState;
 import com.automate.client.managers.packet.IPacketManager;
 import com.automate.client.managers.packet.PacketSentListener;
 import com.automate.protocol.IncomingMessageParser;
@@ -18,11 +16,9 @@ import com.automate.util.xml.XmlFormatException;
 public class MessageManager extends ManagerBase<MessageListener> implements IMessageManager {
 
 	private IPacketManager mPacketManager;
-	
+
 	private IConnectionManager mConnectionManager;
-	
-	private ConnectedState mConnectedState;
-	
+
 	private IncomingMessageParser<ServerProtocolParameters> mParser;
 
 	private String mSessionKey;
@@ -30,7 +26,7 @@ public class MessageManager extends ManagerBase<MessageListener> implements IMes
 	private int mMajorVersion;
 
 	private int mMinorVersion;
-	
+
 	public MessageManager(IPacketManager packetManager, IConnectionManager connectionManager, 
 			IncomingMessageParser<ServerProtocolParameters> parser, int majorVersion, int minorVersion) {
 		super(MessageListener.class);
@@ -43,22 +39,18 @@ public class MessageManager extends ManagerBase<MessageListener> implements IMes
 
 	@Override
 	public void onMessageReceived(Message<ServerProtocolParameters> message) {
-		if(mConnectedState == ConnectedState.CONNECTED) {
-			synchronized (mListeners) {
-				for(MessageListener listener : mListeners) {
-					listener.onMessageReceived(message);
-				}
+		synchronized (mListeners) {
+			for(MessageListener listener : mListeners) {
+				listener.onMessageReceived(message);
 			}
 		}
 	}
 
 	@Override
 	public void onMessageSent(Message<ClientProtocolParameters> message) {
-		if(mConnectedState == ConnectedState.CONNECTED) {
-			synchronized (mListeners) {
-				for(MessageListener listener : mListeners) {
-					listener.onMessageSent(message);
-				}
+		synchronized (mListeners) {
+			for(MessageListener listener : mListeners) {
+				listener.onMessageSent(message);
 			}
 		}
 	}
@@ -68,16 +60,13 @@ public class MessageManager extends ManagerBase<MessageListener> implements IMes
 
 	@Override
 	public void onUnbind(Class<? extends IListener> listenerClass) {
-		if(listenerClass.equals(ConnectionListener.class)) {
-			this.mConnectedState = ConnectedState.DISCONNECTED;
-		}
 	}
 
 	@Override
 	public void sendMessage(Message<ClientProtocolParameters> message) {
 		sendMessage(message, null);
 	}
-	
+
 	@Override
 	public ClientProtocolParameters getProtocolParameters() {
 		return new ClientProtocolParameters(mMajorVersion, mMinorVersion, mSessionKey);
@@ -121,7 +110,6 @@ public class MessageManager extends ManagerBase<MessageListener> implements IMes
 
 	@Override
 	protected void setupInitialState() {
-		this.mConnectedState = ConnectedState.DISCONNECTED;
 	}
 
 	@Override
@@ -157,20 +145,13 @@ public class MessageManager extends ManagerBase<MessageListener> implements IMes
 	public void onSendNoServerPort(int packetId) {}
 	@Override
 	public void onSendError(int packetId) {}
-
 	@Override
-	public void onConnecting() {
-		this.mConnectedState = ConnectedState.CONNECTING;
-	}
-
+	public void onConnecting() {}
 	@Override
-	public void onConnected() {
-		this.mConnectedState = ConnectedState.CONNECTED;
-	}
-
+	public void onConnected() {}
 	@Override
 	public void onDisconnected() {
-		this.mConnectedState = ConnectedState.DISCONNECTED;
+		mSessionKey = null;
 	}
 
 }

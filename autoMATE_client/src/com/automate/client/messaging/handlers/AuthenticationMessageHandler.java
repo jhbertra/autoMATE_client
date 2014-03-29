@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.automate.client.managers.authentication.AuthenticationListener;
 import com.automate.protocol.Message;
+import com.automate.protocol.client.ClientProtocolParameters;
 import com.automate.protocol.server.ServerProtocolParameters;
 import com.automate.protocol.server.messages.ServerAuthenticationMessage;
 
@@ -16,7 +17,7 @@ public class AuthenticationMessageHandler implements IMessageHandler<ServerAuthe
 	}
 
 	@Override
-	public Message<ServerProtocolParameters> handleMessage(int majorVersion, int minorVersion, ServerAuthenticationMessage message, Void params) {
+	public Message<ClientProtocolParameters> handleMessage(int majorVersion, int minorVersion, ServerAuthenticationMessage message, Void params) {
 		int responseCode = message.responseCode;
 		switch(responseCode) {
 		case 200:
@@ -34,7 +35,7 @@ public class AuthenticationMessageHandler implements IMessageHandler<ServerAuthe
 			notifyAuthenticationFailed("The requested username already exists.");
 			break;
 		case 500:
-			notifyAuthenticationFailed("InternalServerError");
+			notifyAuthenticationFailed("Internal server error");
 			break;
 		default:
 			Log.e(getClass().getName(), "Unable to handle response.  Response code " + responseCode + " unknown.");

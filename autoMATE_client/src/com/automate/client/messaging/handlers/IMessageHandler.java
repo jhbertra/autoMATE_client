@@ -1,6 +1,7 @@
 package com.automate.client.messaging.handlers;
 
 import com.automate.protocol.Message;
+import com.automate.protocol.client.ClientProtocolParameters;
 import com.automate.protocol.server.ServerProtocolParameters;
 
 /**
@@ -20,6 +21,6 @@ public interface IMessageHandler<M extends Message<ServerProtocolParameters>, Pa
 	 * @param message the message received from the client
 	 * @return a response message if response is required by protocol spec.
 	 */
-	public abstract Message<ServerProtocolParameters> handleMessage(int majorVersion, int minorVersion, M message, Params params);
+	public abstract Message<ClientProtocolParameters> handleMessage(int majorVersion, int minorVersion, M message, Params params);
 	
 }

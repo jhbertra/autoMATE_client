@@ -68,11 +68,11 @@ public class AutoMateService extends Service implements MessageListener {
 	
 	private void initSubsystems() {
 		IncomingMessageParser<ServerProtocolParameters> parser = getIncomingMessageParser();
-		IncomingPacketListenerThread listenerThread = new IncomingPacketListenerThread(this, 6300);
+		IncomingPacketListenerThread listenerThread = new IncomingPacketListenerThread(this);
 		
 		ISecurityManager securityManager = new SecurityManager();
 		IConnectionManager connectionManager = new ConnectionManager(this);
-		IPacketManager packetManager = new PacketManager(this, listenerThread, "127.0.0.1", "6300", 6300, securityManager);
+		IPacketManager packetManager = new PacketManager(this, listenerThread, "10.11.106.74", "6300", 6300, securityManager);
 		IMessageManager messageManager = new MessageManager(packetManager, connectionManager, parser, majorVersion, minorVersion);
 		IAuthenticationManager authenticationManager = new AuthenticationManager(this, messageManager, connectionManager);
 		INodeManager nodeManager = new NodeManager(messageManager, connectionManager);
@@ -97,10 +97,10 @@ public class AutoMateService extends Service implements MessageListener {
 		handlers = new HashMap<Message.MessageType, IMessageHandler>();
 		handlers.put(MessageType.AUTHENTICATION, new AuthenticationMessageHandler(managers.authenticationManager));
 		handlers.put(MessageType.NODE_LIST, new NodeListMessageHandler(managers.nodeManager));
-		handlers.put(MessageType.PING, new PingMessageHandler(managers.connectionManager));
-		handlers.put(MessageType.COMMAND_CLIENT, new CommandMessageHandler(managers.commandManager));
-		handlers.put(MessageType.STATUS_UPDATE_CLIENT, new StatusUpdateMessageHandler(managers.statusManager));
-		handlers.put(MessageType.WARNING_CLIENT, new WarningMessageHandler(managers.warningManager));
+		handlers.put(MessageType.PING, new PingMessageHandler(managers.connectionManager, managers.messageManager));
+		handlers.put(MessageType.COMMAND_NODE, new CommandMessageHandler(managers.commandManager));
+		handlers.put(MessageType.STATUS_UPDATE_NODE, new StatusUpdateMessageHandler(managers.statusManager));
+		handlers.put(MessageType.WARNING_NODE, new WarningMessageHandler(managers.warningManager));
 	}
 
 	private IncomingMessageParser<ServerProtocolParameters> getIncomingMessageParser() {
@@ -123,16 +123,18 @@ public class AutoMateService extends Service implements MessageListener {
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		Log.d(getClass().getName(), "Starting AutoMateService.");
 		if(started) return START_STICKY;
-		managers.authenticationManager.start();
-		managers.commandManager.start();
-		managers.connectionManager.start();
-		managers.messageManager.start();
-		managers.messageManager.bind(this);
-		managers.nodeManager.start();
-		managers.packetManager.start();
+		
 		managers.securityManager.start();
+		managers.connectionManager.start();
+		managers.packetManager.start();
+		managers.messageManager.start();
+		managers.authenticationManager.start();
+		managers.nodeManager.start();
 		managers.statusManager.start();
 		managers.warningManager.start();
+		managers.commandManager.start();
+
+		managers.messageManager.bind(this);
 		started = true;
 		return START_STICKY;
 	}
@@ -161,7 +163,10 @@ public class AutoMateService extends Service implements MessageListener {
 
 	@Override
 	public void onMessageReceived(Message<ServerProtocolParameters> message) {
-		handlers.get(message.getMessageType()).handleMessage(majorVersion, minorVersion, message, getParams(message));
+		 Message<ClientProtocolParameters> responseMessage = handlers.get(message.getMessageType()).handleMessage(majorVersion, minorVersion, message, getParams(message));
+		 if(message != null) {
+			 this.managers.messageManager.sendMessage(responseMessage);
+		 }
 	}
 
 	private Object getParams(Message<ServerProtocolParameters> message) {

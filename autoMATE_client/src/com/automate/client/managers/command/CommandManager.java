@@ -30,7 +30,7 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 	private boolean mConnected;
 	private final Object lock = new Object();
 	private int nextCommandId;
-	private HashMap<Long, List<Command>> mCommandLists;
+	private HashMap<Long, List<Command>> mCommandLists = new HashMap<Long, List<Command>>();
 	
 	public CommandManager(IConnectionManager connectivityManager, INodeManager nodeManager, IMessageManager messageManager) {
 		super(CommandListener.class);
@@ -136,12 +136,12 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 	}
 
 	@Override
-	public void sendCommand(Command command, final long nodeId) {
-		if(!mCommands.containsKey(nodeId)) return;
+	public long sendCommand(Command command, final long nodeId) {
+		if(!mCommands.containsKey(nodeId)) return -1;
 		synchronized (mCommands) {
 			if(!mConnected) {
 				mCommands.get(nodeId).add(command);
-				return;
+				return -1;
 			}
 		}
 		long commandId = 0;
@@ -177,6 +177,7 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 				onCommandIssued(nodeId, finalCommandId);
 			}
 		});
+		return commandId;
 	}
 
 	@Override

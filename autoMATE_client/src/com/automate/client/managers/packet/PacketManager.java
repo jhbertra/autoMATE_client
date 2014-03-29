@@ -2,17 +2,21 @@ package com.automate.client.managers.packet;
 
 import java.util.HashMap;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.util.Log;
 
 import com.automate.client.managers.IListener;
 import com.automate.client.managers.ManagerBase;
 import com.automate.client.managers.security.ISecurityManager;
 import com.automate.client.managers.security.ProtocolSecurityException;
-import com.automate.client.messaging.services.PacketDeliveryService;
-import com.automate.client.messaging.services.PacketReceiveService;
+import com.automate.client.packet.services.PacketDeliveryService;
+import com.automate.client.packet.services.PacketReceiveService;
+import com.automate.client.packet.services.PacketDeliveryService.PacketDeliveryServiceBinder;
 
 public class PacketManager extends ManagerBase<PacketListener> implements IPacketManager {
 
@@ -187,6 +191,13 @@ public class PacketManager extends ManagerBase<PacketListener> implements IPacke
 			mTemporaryListeners.put(packetId, listener);
 		}
 		mContext.startService(intent);
+		mContext.bindService(intent, new ServiceConnection() {
+			public void onServiceDisconnected(ComponentName name) {}
+			@Override
+			public void onServiceConnected(ComponentName name, IBinder service) {
+				((PacketDeliveryServiceBinder)service).setListenThread(mIncomingPacketListenerThread);
+			}
+		}, Context.BIND_AUTO_CREATE);
 	}
 	
 	@Override

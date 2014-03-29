@@ -46,7 +46,7 @@ public class NodeListAdapter extends ArrayAdapter<Node> {
 		Node node = getItem(position);
 		if(convertView == null) {
 			holder = new Holder();
-			convertView = this.mLayoutInflater.inflate(this.mResource, parent);
+			convertView = this.mLayoutInflater.inflate(this.mResource, null);
 			holder.image = (ImageView) convertView.findViewById(this.mImageResourceId);
 			holder.nameView = (TextView) convertView.findViewById(this.mTitleResourceId);
 			holder.manufacturerView = (TextView) convertView.findViewById(this.mSubtitleResourceId);
@@ -68,6 +68,13 @@ public class NodeListAdapter extends ArrayAdapter<Node> {
 		holder.manufacturerView.setText(manufacturerName);
 		
 		return convertView;
+	}
+	
+	public boolean contains(Node node) {
+		for(int i = 0; i < this.getCount(); ++i) {
+			if(this.getItem(i).equals(node)) return true;
+		}
+		return false;
 	}
 	
 	private static class Holder {

@@ -1,21 +1,17 @@
 package com.automate.client.views.authentication;
 
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences.Editor;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
 
-import com.automate.client.AutoMateService.AutoMateServiceBinder;
 import com.automate.client.R;
 import com.automate.client.managers.IListener;
 import com.automate.client.managers.authentication.AuthenticationListener;
 import com.automate.client.managers.authentication.IAuthenticationManager;
-import com.automate.client.managers.messaging.IMessageManager;
 import com.automate.client.managers.packet.PacketSentListener;
 import com.automate.client.views.AbstractViewService;
 
@@ -24,24 +20,7 @@ public abstract class AbstractAuthenticationService extends AbstractViewService 
 	private final IBinder mBinder = new AbstractAuthenticationServiceBinder();
 	public static final int AUTHENTICATION_SUCCESSFUL = Activity.RESULT_FIRST_USER;
 	public static final int AUTHENTICATION_FAILED = Activity.RESULT_FIRST_USER + 1;
-	protected IMessageManager messageManager;
-
-	private ServiceConnection connection = new ServiceConnection() {
-		@Override
-		public void onServiceDisconnected(ComponentName name) {
-			AbstractAuthenticationService.this.mAutoMateService.getManager(IAuthenticationManager.class)
-				.unbind(AbstractAuthenticationService.this);
-			
-			AbstractAuthenticationService.this.mAutoMateService = null;
-		}
-		@Override
-		public void onServiceConnected(ComponentName name, IBinder service) {
-			Log.d(this.getClass().getName(), "Bound to MessagingService.");
-			AbstractAuthenticationService.this.mAutoMateService = ((AutoMateServiceBinder)service).getService();
-			AbstractAuthenticationService.this.mAutoMateService.getManager(IAuthenticationManager.class)
-				.bind(AbstractAuthenticationService.this);
-		}
-	};
+	protected IAuthenticationManager mAuthenticationManager;
 	
 	@Override
 	public void onBind(Class<? extends IListener> listenerClass) {}
@@ -49,15 +28,6 @@ public abstract class AbstractAuthenticationService extends AbstractViewService 
 	public void onUnbind(Class<? extends IListener> listenerClass) {}
 	@Override
 	public void onAuthenticating(String username) {}
-
-	/* (non-Javadoc)
-	 * @see android.app.Service#onDestroy()
-	 */
-	@Override
-	public void onDestroy() {
-		super.onDestroy();
-		unbindService(connection);
-	}
 
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -139,12 +109,14 @@ public abstract class AbstractAuthenticationService extends AbstractViewService 
 	
 	@Override
 	protected void onServiceConnected() {
-		this.mAutoMateService.getManager(IAuthenticationManager.class).bind(this);
+		this.mAuthenticationManager = this.mAutoMateService.getManager(IAuthenticationManager.class);
+		this.mAuthenticationManager.bind(this);
 	}
 
 	@Override
 	protected void onServiceDisconnected() {
-		this.mAutoMateService.getManager(IAuthenticationManager.class).unbind(this);
+		this.mAuthenticationManager.unbind(this);
+		this.mAuthenticationManager = null;
 	}
 
 	public class AbstractAuthenticationServiceBinder extends Binder {

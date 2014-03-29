@@ -92,13 +92,25 @@ public class AuthenticationActivity extends Activity implements ServiceConnectio
 		usernameView.addTextChangedListener(usernameWatcher);
 		passwordView.addTextChangedListener(passwordWatcher);
 		
+	}
+	
+	@Override
+	protected void onStart() {
+		super.onStart();		
 		Intent serviceIntent = new Intent(this, AuthenticationService.class);
 		Messenger messenger = new Messenger(new Handler(this));
 		serviceIntent.putExtra(AbstractAuthenticationService.MESSENGER, messenger);
 		startService(serviceIntent);
 		bindService(serviceIntent, this, 0);
 	}
-	
+
+	@Override
+	protected void onStop() {
+		super.onStop();
+		unbindService(this);
+		this.mService.stopSelf();
+	}
+
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();

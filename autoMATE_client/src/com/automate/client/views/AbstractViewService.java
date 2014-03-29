@@ -37,7 +37,15 @@ public abstract class AbstractViewService extends Service {
 			throw new NullPointerException("messenger was null.");
 		}
 		bindService(new Intent(this, AutoMateService.class), connection, BIND_AUTO_CREATE);
-		return 0;
+		return START_NOT_STICKY;
+	}
+	
+	@Override
+	public void onDestroy() {
+		unbindService(connection);
+		onServiceDisconnected();
+		mAutoMateService = null;
+		super.onDestroy();
 	}
 
 	protected abstract void onServiceConnected();

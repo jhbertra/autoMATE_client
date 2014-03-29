@@ -144,12 +144,23 @@ public class RegistrationActivity extends Activity implements ServiceConnection,
 		nameField.addTextChangedListener(nameWatcher);
 		emailField = (TextView) findViewById(R.id.reg_email);
 		emailField.addTextChangedListener(emailWatcher);
-		
+	}
+	
+	@Override
+	protected void onStart() {
+		super.onStart();		
 		Intent serviceIntent = new Intent(this, RegistrationService.class);
 		Messenger messenger = new Messenger(new Handler(this));
 		serviceIntent.putExtra(AbstractAuthenticationService.MESSENGER, messenger);
 		startService(serviceIntent);
 		bindService(serviceIntent, this, 0);
+	}
+
+	@Override
+	protected void onStop() {
+		super.onStop();
+		unbindService(this);
+		this.mService.stopSelf();
 	}
 
 	private void setEmailValid(boolean emailVaild) {

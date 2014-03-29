@@ -2,6 +2,7 @@ package com.automate.client.messaging.handlers;
 
 import com.automate.client.managers.status.StatusListener;
 import com.automate.protocol.Message;
+import com.automate.protocol.client.ClientProtocolParameters;
 import com.automate.protocol.server.ServerProtocolParameters;
 import com.automate.protocol.server.messages.ServerClientStatusUpdateMessage;
 
@@ -14,7 +15,8 @@ public class StatusUpdateMessageHandler implements IMessageHandler<ServerClientS
 	}
 
 	@Override
-	public Message<ServerProtocolParameters> handleMessage(int majorVersion, int minorVersion, ServerClientStatusUpdateMessage message, Void params) {
+	public Message<ClientProtocolParameters> handleMessage(int majorVersion, int minorVersion, ServerClientStatusUpdateMessage message, Void params) {
+		mListener.onStatusUpdated(message.nodeId, message.statuses);
 		return null;
 	}
 

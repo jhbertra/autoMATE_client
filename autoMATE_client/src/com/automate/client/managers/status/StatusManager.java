@@ -2,6 +2,7 @@ package com.automate.client.managers.status;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import com.automate.client.managers.IListener;
 import com.automate.client.managers.ManagerBase;
@@ -37,7 +38,9 @@ public class StatusManager extends ManagerBase<StatusListener> implements IStatu
 
 	@Override
 	protected void performInitialUpdate(StatusListener listener) {
-		
+		for(Long nodeId: mStatuses.keySet()) {
+			listener.onStatusUpdated(nodeId, mStatuses.get(nodeId));
+		}
 	}
 
 	@Override

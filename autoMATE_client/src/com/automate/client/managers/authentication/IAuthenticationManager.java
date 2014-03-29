@@ -11,5 +11,7 @@ public interface IAuthenticationManager extends IManager<AuthenticationListener>
 	public boolean signOut();
 	
 	public boolean register(String username, String password, String name, String email);
+
+	public void reconnect();
 	
 }

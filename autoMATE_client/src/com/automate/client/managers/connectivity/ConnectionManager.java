@@ -5,6 +5,7 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 import com.automate.client.managers.IListener;
 import com.automate.client.managers.ManagerBase;
@@ -61,23 +62,29 @@ public class ConnectionManager extends ManagerBase<ConnectionListener> implement
 		switch(mConnectedState) {
 		case DISCONNECTED:
 			listener.onDisconnected();
+			break;
 		case CONNECTING:
 			listener.onConnecting();
+			break;
 		case CONNECTED:
 			listener.onConnected();
+			break;
 		}
 	}
 	
 	@Override
 	public void scheduleDisconnect(long millis) {
+		Log.i(getClass().getName(), "Disconnect scheduled.");
 		AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
 		Intent intent = new Intent(mContext, DisconnectReceiver.class);
 		PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-		alarmManager.set(AlarmManager.RTC_WAKEUP, millis, pendingIntent);
+		alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + millis, pendingIntent);
 	}
 
 	@Override
 	public void disconnect() {
+		if(mConnectedState == ConnectedState.DISCONNECTED) return;
+		Log.i(getClass().getName(), "Disconnected.");
 		this.mConnectedState = ConnectedState.DISCONNECTED;
 		onDisconnected();
 	}

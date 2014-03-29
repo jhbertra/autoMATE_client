@@ -1,73 +1,89 @@
 package com.automate.client.managers.packet;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.ServerSocket;
+import java.io.InputStreamReader;
 import java.net.Socket;
-import java.net.SocketException;
-import java.util.concurrent.ExecutorService;
+import java.util.ArrayList;
 
-import com.automate.client.messaging.services.PacketReceiveService;
-import com.automate.client.messaging.services.PacketReceiveService.PacketReceiveBinder;
+import com.automate.client.AutoMateService;
+import com.automate.client.managers.connectivity.IConnectionManager;
+import com.automate.client.packet.services.PacketReceiveService;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
 import android.util.Log;
 
 public class IncomingPacketListenerThread extends Thread {
 
-	private int mBindPort;
-	
-	private ExecutorService threadpool;
+	private AutoMateService mService;
 
-	private Context mContext;
+	private Socket mSocket;
 
-	private ServerSocket serverSocket;
-	
-	public IncomingPacketListenerThread() {
+	private ArrayList<Socket> socketQueue;
+
+	private boolean mCancelled;
+
+	public IncomingPacketListenerThread(AutoMateService service) {
 		super("Incoming packet listener.");
+		this.mService = service;
+		socketQueue = new ArrayList<Socket>();
 	}
-	
-	public IncomingPacketListenerThread(Context context, int bindPort) {
-		this.mBindPort = bindPort;
-		this.mContext = context;
+
+	public void queueSocket(Socket socket) {
+		if(mCancelled) throw new IllegalStateException("Cannot queue a new socket after listen thread cancelled.");
+		synchronized (socketQueue) {
+			socketQueue.add(socket);
+			socketQueue.notify();
+		}
 	}
 
 	@Override
 	public void run() {
-		try {
-			serverSocket = new ServerSocket(mBindPort);
-			while(true) {
-				final Socket socket = serverSocket.accept();
-				Intent service = new Intent(mContext, PacketReceiveService.class);
-				mContext.startService(service);
-				mContext.bindService(service, new ServiceConnection() {
-					@Override
-					public void onServiceDisconnected(ComponentName name) {}
-					@Override
-					public void onServiceConnected(ComponentName name, IBinder service) {
-						((PacketReceiveBinder)service).getApi().startDownload(socket);
-					}
-				}, Context.BIND_AUTO_CREATE);
-			}
-		} catch(SocketException e) {
-			
-		} catch (IOException e) {
-			Log.e(getClass().getName(), "Fatal exception in Incoming packet listener thread.", e);
+		while(!mCancelled) {
 			try {
-				serverSocket.close();
-			} catch (IOException e2) {}
+				synchronized (socketQueue) {
+					if(socketQueue.isEmpty()) {
+						socketQueue.wait();
+					}
+					mSocket = socketQueue.remove(0);
+				}
+				while(true) {
+					String line;
+					BufferedReader reader = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
+					StringBuilder sb = new StringBuilder();
+					while(!(line = reader.readLine()).equals("\0")) {
+						if(line.equals("EOF")) {
+							mSocket.close();
+							Log.d(getClass().getName(), "Using next socket.");
+							break;
+						}
+						sb.append(line);
+						sb.append('\n');
+					}
+					if(mSocket.isClosed()) break;
+					Intent service = new Intent(mService, PacketReceiveService.class);
+					service.putExtra(PacketReceiveService.MESSAGE, sb.toString());
+					mService.startService(service);
+				}
+			} catch(NullPointerException e) {
+				Log.d(getClass().getName(), "Using next socket.");
+			} catch(Exception e) {
+				//mService.getManager(IConnectionManager.class).disconnect();
+				try {
+					mSocket.close();
+				} catch (IOException e1) {}
+			}
 		}
 	}
 
 	public void cancel() {
-		if(serverSocket != null) {
+		if(mSocket != null) {
 			try {
-				serverSocket.close();
+				mCancelled = true;
+				mSocket.close();
 			} catch (IOException e) {}
 		}
 	}
-	
+
 }

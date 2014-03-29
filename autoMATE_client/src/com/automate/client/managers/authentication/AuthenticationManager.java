@@ -1,6 +1,10 @@
 package com.automate.client.managers.authentication;
 
+import android.app.AlarmManager; 
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.util.Log;
 
@@ -28,6 +32,8 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 	private String mUsername;
 	private String mPassword;
 	
+	private boolean attemptReconeect;
+	
 	public AuthenticationManager(Context context, IMessageManager messageManager, IConnectionManager connectionManager) {
 		super(AuthenticationListener.class);
 		this.mContext = context;
@@ -50,14 +56,13 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 	public boolean signIn(String username, String password) {
 		String currentSessionKey = mMessageManager.getSessionKey();
 		if(username != null && password != null 
-				&& (currentSessionKey == null || currentSessionKey.isEmpty())
-				&& (mUsername == null || mUsername.isEmpty())
-				&& (mPassword == null || mPassword.isEmpty())) {
+				&& (currentSessionKey == null || currentSessionKey.isEmpty())) {
 			ClientAuthenticationMessage message = new ClientAuthenticationMessage(mMessageManager.getProtocolParameters(), username, password);
 			mMessageManager.sendMessage(message, this);
 			onAuthenticating(username);
 			mUsername = username;
 			mPassword = password;
+			this.attemptReconeect = true;
 			return true;
 		}
 		return false;
@@ -91,6 +96,7 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 		this.mUsername = null;
 		this.mPassword = null;
 		this.mConnectionManager.disconnect();
+		this.attemptReconeect = false;
 		return false;
 	}
 
@@ -116,12 +122,20 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 	@Override
 	protected void setupInitialState() {
 		this.mConnectedState = ConnectedState.DISCONNECTED;
+		SharedPreferences authPrefs = mContext.getSharedPreferences(mContext.getResources().getString(R.string.prefs_credentials), 
+				Context.MODE_PRIVATE);
+		String username = authPrefs.getString(mContext.getResources().getString(R.string.prefs_credentials_username), null);
+		String password = authPrefs.getString(mContext.getResources().getString(R.string.prefs_credentials_password), null);
+		if(username != null && password != null) {
+			signIn(username, password);
+		}
 	}
 
 	@Override
 	protected void teardown() {
 		this.mUsername = null;
 		this.mPassword = null;
+		signOut();
 	}
 
 	@Override
@@ -148,6 +162,7 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 		String prefsKey = mContext.getResources().getString(R.string.prefs_credentials);
 		Editor editor = mContext.getSharedPreferences(prefsKey, Context.MODE_PRIVATE).edit();
 		editor.putString(mContext.getResources().getString(R.string.prefs_credentials_username), username);
+		editor.putString(mContext.getResources().getString(R.string.prefs_credentials_password), mPassword);
 		editor.commit();
 		mConnectionManager.onConnected();
 		for(AuthenticationListener listener : mListeners) {
@@ -164,6 +179,9 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 		mConnectionManager.onDisconnected();
 		for(AuthenticationListener listener : mListeners) {
 			listener.onAuthenticationFailed(failureMessage);
+		}
+		if(attemptReconeect) {
+			scheduleReconnect();
 		}
 	}
 
@@ -196,8 +214,24 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 	@Override
 	public void onDisconnected() {
 		this.mConnectedState = ConnectedState.DISCONNECTED;
-		this.mUsername = null;
-		this.mPassword = null;
+		if(attemptReconeect) {
+			scheduleReconnect();
+		}
+	}
+
+	private void scheduleReconnect() {
+		Log.i(getClass().getName(), "Reconnect scheduled.");
+		AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
+		Intent intent = new Intent(mContext, ReconnectReceiver.class);
+		PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+		alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 15000, pendingIntent);
+	}
+
+	@Override
+	public void reconnect() {
+		if(mUsername != null && mPassword != null) {
+			signIn(mUsername, mPassword);
+		}
 	}
 
 }
