@@ -68,6 +68,7 @@ public class NodeService extends AbstractViewService implements CommandListener,
 	}
 	
 	public List<Command> getCommands() {
+		if(mCommandManager == null) return null;
 		List<Command> commands = mCommandManager.getCommandList(nodeId);
 		if(commands == null) {
 			return new ArrayList<Command>();

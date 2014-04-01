@@ -47,15 +47,15 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 public class NodeActivity extends Activity implements Callback, OnItemClickListener {
-	
+
 	public static final String NODE_ID = "Node Id";
 
 	private NodeService mService;
-	
+
 	private ListView mListView;
 	private Button mButton;
 	private TextView mNameView;
-	
+
 	private StatusAdapter mStatusAdapter;
 	private CommandAdapter mCommandAdapter;
 
@@ -68,6 +68,7 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 			mService = ((NodeServiceBinder)service).getService();
 			mCommandAdapter = new CommandAdapter(NodeActivity.this, R.layout.command_list_item, R.id.node_command_name, mService.getCommands());
 			mNameView.setText(mService.getNode().name);
+			mService.refreshStatus();
 		}
 	};
 
@@ -77,11 +78,11 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		this.setContentView(R.layout.node_view);
-		
+
 		this.mListView = (ListView) findViewById(R.id.node_status_list);
 		this.mButton = (Button) findViewById(R.id.node_command_button);
 		this.mNameView = (TextView) findViewById(R.id.node_name);
-		
+
 		mStatusAdapter = new StatusAdapter(NodeActivity.this, R.layout.status_list_item, R.id.node_status_name, 
 				R.id.node_status_value, new ArrayList<Status<?>>());
 		mListView.setAdapter(mStatusAdapter);
@@ -91,7 +92,7 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 	@Override
 	protected void onStart() {
 		super.onStart();
-		
+
 		Intent intent = new Intent(this, NodeService.class);
 		intent.putExtra(AbstractViewService.MESSENGER, new Messenger(new Handler(this)));
 		intent.putExtra(NodeService.NODE_ID, getIntent().getLongExtra(NODE_ID, -1));
@@ -114,29 +115,29 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 			this.mButton.setText(R.string.button_commands);
 		}
 	}
-	
+
 	@Override
 	public boolean handleMessage(Message msg) {
 		switch (msg.what) {
 		case NodeService.CONNECTED:
-			
+
 			break;
 
 		case NodeService.CONNECTING:
-			
+
 			break;
 
 		case NodeService.DISCONNECTED:
-			
+
 			break;
 
 		case NodeService.NEW_WARNING:
-			
+
 			break;
 
 		case NodeService.STATUS_UPDATED:
 			this.mStatusAdapter.setStatuses((List<Status<?>>) msg.obj);
-			this.mCommandAdapter.updateVisibilities((List<Status<?>>) msg.obj);
+			this.mCommandAdapter.setStatuses((List<Status<?>>) msg.obj);
 			break;
 
 		case NodeService.STATUS_UPDATE_CANCELLED:
@@ -168,17 +169,18 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 			.setTitle(R.string.command_failure_title)
 			.setMessage(getResources().getString(R.string.command_failure_message, msg.getData().getString(NodeService.FAILED_COMMAND)) + 
 					"\n\n" + msg.obj)
-			.setNeutralButton(R.string.button_ok, new Dialog.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					dialog.dismiss();
-				}
-			}).show();
+					.setNeutralButton(R.string.button_ok, new Dialog.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+						}
+					}).show();
 			break;
 
 		case NodeService.COMMAND_SUCCESS:
+			mService.refreshStatus();
 			break;
-			
+
 		default:
 			return false;
 		}
@@ -215,12 +217,6 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 			List<CommandArgument<?>> commandArgs = new ArrayList<CommandArgument<?>>();
 			Iterator<ArgumentSpecification> args = command.args.iterator();
 			getArgValue(command, args, commandArgs);
-			/*
-			for(ArgumentSpecification arg : command.args) {
-				command.args.
-				commandArgs.add(CommandArgument.newCommandArgument(arg.mName, arg.mType, ));
-			}
-			*/
 		}
 	}
 
@@ -258,14 +254,14 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 		LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
 		if(range instanceof NumericRange<?>) {
 			switch(type) {
-				case INTEGER:
-					return integerRangeContentView(((NumericRange<Integer>)range).getLowerBound(), ((NumericRange<Integer>)range).getUpperBound(), 
-							arg, inflater, list);
-				case REAL:
-					return realRangeContentView(((NumericRange<Double>)range).getLowerBound(), ((NumericRange<Double>)range).getUpperBound(), 
-							arg, inflater, list);
+			case INTEGER:
+				return integerRangeContentView(((NumericRange<Integer>)range).getLowerBound(), ((NumericRange<Integer>)range).getUpperBound(), 
+						arg, inflater, list);
+			case REAL:
+				return realRangeContentView(((NumericRange<Double>)range).getLowerBound(), ((NumericRange<Double>)range).getUpperBound(), 
+						arg, inflater, list);
 			}
-			
+
 		} else if(range instanceof EnumRange) {
 			switch(type) {
 			case STRING:
@@ -273,12 +269,12 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 			}
 		} else {
 			switch(type) {
-				case STRING:
-					return genericStringContentView(arg, inflater, list);
-				case INTEGER:
-					return genericIntegerContentView(arg, inflater, list);
-				case REAL:
-					return genericRealContentView(arg, inflater, list);
+			case STRING:
+				return genericStringContentView(arg, inflater, list);
+			case INTEGER:
+				return genericIntegerContentView(arg, inflater, list);
+			case REAL:
+				return genericRealContentView(arg, inflater, list);
 			}
 		}
 		switch(type) {
@@ -452,7 +448,7 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 		rangeView.setText(getResources().getString(R.string.command_set_arg_real_range, lower, upper));
 		return view;
 	}
-	
+
 	private View integerRangeContentView(final int lower, final int upper, final ArgumentSpecification arg, LayoutInflater inflater, 
 			final List<CommandArgument<?>> list) {
 		View view = inflater.inflate(R.layout.int_range_arg, null);
@@ -483,5 +479,5 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 		rangeView.setText(getResources().getString(R.string.command_set_arg_int_range, lower, upper));
 		return view;
 	}
-	
+
 }
