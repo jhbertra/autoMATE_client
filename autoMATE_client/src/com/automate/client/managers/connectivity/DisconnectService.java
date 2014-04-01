@@ -22,7 +22,7 @@ public class DisconnectService extends Service implements ServiceConnection {
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		Intent service = new Intent(this, AutoMateService.class);
-		bindService(service, this, flags);
+		bindService(service, this, BIND_AUTO_CREATE);
 		return START_NOT_STICKY;
 	}
 

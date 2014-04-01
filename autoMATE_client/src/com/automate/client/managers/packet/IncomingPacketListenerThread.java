@@ -4,15 +4,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
-import java.util.ArrayList;
 
 import com.automate.client.AutoMateService;
 import com.automate.client.managers.connectivity.IConnectionManager;
 import com.automate.client.packet.services.PacketReceiveService;
 
-import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 public class IncomingPacketListenerThread extends Thread {
 
@@ -20,21 +17,22 @@ public class IncomingPacketListenerThread extends Thread {
 
 	private Socket mSocket;
 
-	private ArrayList<Socket> socketQueue;
+	private final Object socketLock = new Object();
 
 	private boolean mCancelled;
 
 	public IncomingPacketListenerThread(AutoMateService service) {
 		super("Incoming packet listener.");
 		this.mService = service;
-		socketQueue = new ArrayList<Socket>();
 	}
 
-	public void queueSocket(Socket socket) {
+	public void newSocketAvailable(Socket socket) {
 		if(mCancelled) throw new IllegalStateException("Cannot queue a new socket after listen thread cancelled.");
-		synchronized (socketQueue) {
-			socketQueue.add(socket);
-			socketQueue.notify();
+		synchronized (socketLock) {
+			if(mSocket == null) {
+				this.mSocket = socket;
+				socketLock.notify();
+			}
 		}
 	}
 
@@ -42,37 +40,33 @@ public class IncomingPacketListenerThread extends Thread {
 	public void run() {
 		while(!mCancelled) {
 			try {
-				synchronized (socketQueue) {
-					if(socketQueue.isEmpty()) {
-						socketQueue.wait();
+				synchronized (socketLock) {
+					if(mSocket == null) {
+						try {
+							socketLock.wait();
+						} catch (InterruptedException e) {}
 					}
-					mSocket = socketQueue.remove(0);
 				}
 				while(true) {
 					String line;
 					BufferedReader reader = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
 					StringBuilder sb = new StringBuilder();
 					while(!(line = reader.readLine()).equals("\0")) {
-						if(line.equals("EOF")) {
-							mSocket.close();
-							Log.d(getClass().getName(), "Using next socket.");
-							break;
-						}
 						sb.append(line);
 						sb.append('\n');
 					}
-					if(mSocket.isClosed()) break;
 					Intent service = new Intent(mService, PacketReceiveService.class);
 					service.putExtra(PacketReceiveService.MESSAGE, sb.toString());
 					mService.startService(service);
 				}
-			} catch(NullPointerException e) {
-				Log.d(getClass().getName(), "Using next socket.");
 			} catch(Exception e) {
-				//mService.getManager(IConnectionManager.class).disconnect();
-				try {
-					mSocket.close();
-				} catch (IOException e1) {}
+				mService.getManager(IConnectionManager.class).disconnect();
+				if(mSocket != null && !mSocket.isClosed()) {
+					try {
+						mSocket = null;
+						mSocket.close();
+					} catch (IOException e1) {}
+				}
 			}
 		}
 	}
@@ -81,9 +75,19 @@ public class IncomingPacketListenerThread extends Thread {
 		if(mSocket != null) {
 			try {
 				mCancelled = true;
+				mSocket = null;
 				mSocket.close();
 			} catch (IOException e) {}
 		}
 	}
-
+	
+	public void onDisconnected() {
+		if(mSocket != null && !mSocket.isClosed()) {
+			try {
+				Socket socketTemp = mSocket;
+				mSocket = null;
+				socketTemp.close();
+			} catch (IOException e) {}
+		}
+	}
 }

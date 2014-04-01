@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandList>
+	<Command name="Power On">
+		<StatusValueCondition status="Power On" type="boolean" value="false" default="true"/>
+	</Command>
+	<Command name="Power Off">
+		<StatusValueCondition status="Power On" type="boolean" value="true" default="false"/>
+	</Command>
+	<Command name="Set Speed">
+		<Argument name="speed" type="string">
+			<EnumRange>
+				<Value>Low</Value>
+				<Value>Medium</Value>
+				<Value>High</Value>
+			</EnumRange>
+		</Argument>
+		<StatusValueCondition status="Power On" type="boolean" value="true" default="false"/>
+	</Command>
+</CommandList>

@@ -138,7 +138,9 @@ public class MessageManager extends ManagerBase<MessageListener> implements IMes
 	@Override
 	public void onPacketSent(int packetId) {}
 	@Override
-	public void onSendIoException(int packetId) {}
+	public void onSendIoException(int packetId) {
+		mConnectionManager.disconnect();
+	}
 	@Override
 	public void onSendNoServerAddress(int packetId) {}
 	@Override
@@ -152,6 +154,7 @@ public class MessageManager extends ManagerBase<MessageListener> implements IMes
 	@Override
 	public void onDisconnected() {
 		mSessionKey = null;
+		mPacketManager.onDisconnected();
 	}
 
 }

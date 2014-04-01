@@ -72,13 +72,13 @@ public class AutoMateService extends Service implements MessageListener {
 		
 		ISecurityManager securityManager = new SecurityManager();
 		IConnectionManager connectionManager = new ConnectionManager(this);
-		IPacketManager packetManager = new PacketManager(this, listenerThread, "10.11.106.74", "6300", 6300, securityManager);
+		IPacketManager packetManager = new PacketManager(this, listenerThread, "automate.linkpc.net", "6300", 6300, securityManager);
 		IMessageManager messageManager = new MessageManager(packetManager, connectionManager, parser, majorVersion, minorVersion);
 		IAuthenticationManager authenticationManager = new AuthenticationManager(this, messageManager, connectionManager);
 		INodeManager nodeManager = new NodeManager(messageManager, connectionManager);
 		IStatusManager statusManager = new StatusManager(messageManager, connectionManager, nodeManager);
 		IWarningManager warningManager = new WarningManager(connectionManager, nodeManager, messageManager);
-		ICommandManager commandManager = new CommandManager(connectionManager, nodeManager, messageManager);
+		ICommandManager commandManager = new CommandManager(this, connectionManager, nodeManager, messageManager);
 		
 		this.managers = new Managers(authenticationManager, 
 				commandManager, 
@@ -98,7 +98,14 @@ public class AutoMateService extends Service implements MessageListener {
 		handlers.put(MessageType.AUTHENTICATION, new AuthenticationMessageHandler(managers.authenticationManager));
 		handlers.put(MessageType.NODE_LIST, new NodeListMessageHandler(managers.nodeManager));
 		handlers.put(MessageType.PING, new PingMessageHandler(managers.connectionManager, managers.messageManager));
-		handlers.put(MessageType.COMMAND_NODE, new CommandMessageHandler(managers.commandManager));
+		handlers.put(MessageType.COMMAND_NODE, new CommandMessageHandler(managers.commandManager, 
+				getResources().getString(R.string.command_invalid_id_message), 
+				getResources().getString(R.string.command_server_error_message), 
+				getResources().getString(R.string.command_node_not_owned_message), 
+				getResources().getString(R.string.command_node_offline_message), 
+				getResources().getString(R.string.command_duplicate_id_message), 
+				getResources().getString(R.string.command_invalid_args_message), 
+				getResources().getString(R.string.command_invalid_command_message)));
 		handlers.put(MessageType.STATUS_UPDATE_NODE, new StatusUpdateMessageHandler(managers.statusManager));
 		handlers.put(MessageType.WARNING_NODE, new WarningMessageHandler(managers.warningManager));
 	}
@@ -108,7 +115,7 @@ public class AutoMateService extends Service implements MessageListener {
 				new HashMap<String, MessageSubParser<? extends Message<ServerProtocolParameters>,ServerProtocolParameters>>();
 		subParsers.put(MessageType.AUTHENTICATION.toString(), new ServerAuthenticationMessageSubParser());
 		subParsers.put(MessageType.NODE_LIST.toString(), new ServerNodeListMessageSubParser());
-		subParsers.put(MessageType.COMMAND_NODE.toString(), new ServerCommandMessageSubParser());
+		subParsers.put(MessageType.COMMAND_NODE.toString(), new ServerClientCommandMessageSubParser());
 		subParsers.put(MessageType.PING.toString(), new ServerPingMessageSubParser());
 		subParsers.put(MessageType.STATUS_UPDATE_NODE.toString(), new ServerClientStatusUpdateMessageSubParser());
 		subParsers.put(MessageType.WARNING_NODE.toString(), new ServerWarningMessageSubParser());
@@ -164,7 +171,7 @@ public class AutoMateService extends Service implements MessageListener {
 	@Override
 	public void onMessageReceived(Message<ServerProtocolParameters> message) {
 		 Message<ClientProtocolParameters> responseMessage = handlers.get(message.getMessageType()).handleMessage(majorVersion, minorVersion, message, getParams(message));
-		 if(message != null) {
+		 if(responseMessage != null) {
 			 this.managers.messageManager.sendMessage(responseMessage);
 		 }
 	}

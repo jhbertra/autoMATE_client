@@ -11,6 +11,7 @@
     <string name="auth_failed">Could not sign in.</string>
     <string name="button_register">Register</string>
     <string name="button_ok">ok</string>
+    <string name="button_cancel">cancel</string>
     <string name="button_signIn">Sign In</string>
     <string name="button_createNewAccount">Create New Account</string>
     <string name="button_look_for_nodes">Scan for nearby devices</string>
@@ -30,5 +31,21 @@
     <string name="node_list_disconnected">You are not connected.</string>
     <string name="node_list_downloading">Downloading node list...</string>
     <string name="node_list_connecting">Connecting...</string>
-
+    <string name="command_confirm_title">Confirm Command Selection</string>
+    <string name="command_confirm_message">Send %1$s command?</string>
+    <string name="command_set_arg_title">Set Argument Value</string>
+    <string name="command_set_arg_message">Enter value for %1$s.</string>
+	<string name="command_set_arg_int_range">(%1$d)...(%2$d)</string>
+	<string name="command_set_arg_real_range">(%1$f)...(%2$f)</string>
+	<string name="command_lost_title">Command Lost</string>
+	<string name="command_lost_message">A recent %1$s command was never received.</string>
+	<string name="command_invalid_id_message">The device is not registered.</string> 
+	<string name="command_server_error_message">Internal server error.</string> 
+	<string name="command_node_not_owned_message">The device does not belong to you.</string> 
+	<string name="command_node_offline_message">The device is offline.</string> 
+	<string name="command_duplicate_id_message">The application sent a duplicate command id.</string> 
+	<string name="command_invalid_args_message">The command arguments were invalid.</string> 
+	<string name="command_invalid_command_message">The command sent was not valid.</string> 
+	<string name="command_failure_title">Command Failed</string>
+	<string name="command_failure_message">A recent %1$s command failed:</string>
 </resources>

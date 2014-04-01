@@ -6,6 +6,7 @@ import java.util.List;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
@@ -24,6 +25,7 @@ import com.automate.client.managers.status.StatusListener;
 import com.automate.client.managers.warning.IWarningManager;
 import com.automate.client.managers.warning.WarningListener;
 import com.automate.client.views.AbstractViewService;
+import com.automate.protocol.models.CommandArgument;
 import com.automate.protocol.models.Node;
 import com.automate.protocol.models.Status;
 import com.automate.protocol.models.Warning;
@@ -44,6 +46,7 @@ public class NodeService extends AbstractViewService implements CommandListener,
 	public static final int COMMAND_FAILED = Activity.RESULT_FIRST_USER + 11;
 	
 	public static final String NODE_ID = "Node Id";
+	public static final String FAILED_COMMAND = "Failed Command";
 	
 	private IBinder mBinder = new NodeServiceBinder();
 	private ICommandManager mCommandManager;
@@ -60,8 +63,8 @@ public class NodeService extends AbstractViewService implements CommandListener,
 		mStatusManager.requestStatusUpdate(nodeId);
 	}
 	
-	public long sendCommand(Command command) {
-		return mCommandManager.sendCommand(command, nodeId);
+	public long sendCommand(Command command, List<CommandArgument<?>> args) {
+		return mCommandManager.sendCommand(command, nodeId, args);
 	}
 	
 	public List<Command> getCommands() {
@@ -238,6 +241,9 @@ public class NodeService extends AbstractViewService implements CommandListener,
 		Message message = new Message();
 		message.what = COMMAND_LOST;
 		message.obj = commandId;
+		Bundle data = new Bundle();
+		data.putString(FAILED_COMMAND, mCommandManager.getCommandNameForCommandId(commandId));
+		message.setData(data);
 		try {
 			this.mMessenger.send(message);
 		} catch (RemoteException e) {}
@@ -255,11 +261,14 @@ public class NodeService extends AbstractViewService implements CommandListener,
 	}
 
 	@Override
-	public void onCommandFailure(long nodeId, long commandId) {
+	public void onCommandFailure(long nodeId, long commandId, String failureMessage) {
 		if(nodeId != this.nodeId) return;
 		Message message = new Message();
 		message.what = COMMAND_FAILED;
-		message.obj = commandId;
+		message.obj = failureMessage;
+		Bundle data = new Bundle();
+		data.putString(FAILED_COMMAND, mCommandManager.getCommandNameForCommandId(commandId));
+		message.setData(data);
 		try {
 			this.mMessenger.send(message);
 		} catch (RemoteException e) {}

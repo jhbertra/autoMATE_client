@@ -10,6 +10,6 @@ public interface CommandListener extends IListener {
 	
 	public void onCommandSuccess(long nodeId, long commandId);
 	
-	public void onCommandFailure(long nodeId, long commandId);
+	public void onCommandFailure(long nodeId, long commandId, String failureMessage);
 	
 }

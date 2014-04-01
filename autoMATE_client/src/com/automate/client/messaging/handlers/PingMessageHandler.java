@@ -23,5 +23,4 @@ public class PingMessageHandler implements IMessageHandler<ServerPingMessage, Vo
 		mConnectionManager.scheduleDisconnect(90000L);
 		return new ClientPingMessage(mMessageManager.getProtocolParameters());
 	}
-
 }

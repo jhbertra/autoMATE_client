@@ -236,4 +236,9 @@ public class PacketManager extends ManagerBase<PacketListener> implements IPacke
 	@Override
 	protected void performInitialUpdate(PacketListener listener) {}
 
+	@Override
+	public void onDisconnected() {
+		mIncomingPacketListenerThread.onDisconnected();
+	}
+
 }

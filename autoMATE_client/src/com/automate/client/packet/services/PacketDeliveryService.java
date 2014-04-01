@@ -131,7 +131,7 @@ public class PacketDeliveryService extends IntentService {
 				writer.flush();
 				Log.v(getClass().getName(), "Sent message: " + xmlData);
 				result = Activity.RESULT_OK;
-				mListenerThread.queueSocket(outputSocket);
+				mListenerThread.newSocketAvailable(outputSocket);
 			} catch (IOException e) {
 				Log.e(getClass().getName(), "Error sending packet.", e);
 				result = RESULT_IO_EXCEPTION;

@@ -11,4 +11,6 @@ public interface IPacketManager extends PacketListener, IManager<PacketListener>
 
 	public void receivePacket(String packet);
 	
+	public void onDisconnected();
+	
 }

@@ -1,11 +1,27 @@
 package com.automate.client.managers.command;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
+
+import android.content.Context;
+import android.util.Log;
+
+import com.automate.client.R;
 import com.automate.client.managers.IListener;
 import com.automate.client.managers.ManagerBase;
 import com.automate.client.managers.connectivity.IConnectionManager;
@@ -15,25 +31,28 @@ import com.automate.client.managers.packet.PacketSentListener;
 import com.automate.protocol.Message;
 import com.automate.protocol.client.ClientProtocolParameters;
 import com.automate.protocol.client.messages.ClientCommandMessage;
+import com.automate.protocol.models.CommandArgument;
 import com.automate.protocol.models.Node;
 import com.automate.protocol.server.ServerProtocolParameters;
 
-public class CommandManager extends ManagerBase<CommandListener> implements
-		ICommandManager {
+public class CommandManager extends ManagerBase<CommandListener> implements ICommandManager {
 
 	private IConnectionManager mConnectivityManager;
 	private INodeManager mNodeManager;
 	private IMessageManager mMessageManager;
 	
-	private HashMap<Long, List<Command>> mCommands = new HashMap<Long, List<Command>>();
-	
 	private boolean mConnected;
 	private final Object lock = new Object();
 	private int nextCommandId;
 	private HashMap<Long, List<Command>> mCommandLists = new HashMap<Long, List<Command>>();
+	private HashMap<Long, ClientCommandMessage> mCommandHistory = new HashMap<Long, ClientCommandMessage>();
 	
-	public CommandManager(IConnectionManager connectivityManager, INodeManager nodeManager, IMessageManager messageManager) {
+	private CommandListParser mCommandListParser = new CommandListParser();
+	private Context mContext;
+	
+	public CommandManager(Context context, IConnectionManager connectivityManager, INodeManager nodeManager, IMessageManager messageManager) {
 		super(CommandListener.class);
+		this.mContext = context;
 		this.mConnectivityManager = connectivityManager;
 		this.mNodeManager = nodeManager;
 		this.mMessageManager = messageManager;
@@ -50,7 +69,50 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 	}
 	@Override
 	public void onNodeAdded(Node node) {
-		mCommands.put(node.id, new ArrayList<Command>());
+		if(mCommandLists.containsKey(node.id)) return;
+		Document commandListDocument =  getCommandListDocument(node.commandListUrl);
+		if(commandListDocument == null) {
+			Log.e(getClass().getName(), "Could not load command list file from " + node.commandListUrl);
+			return;
+		}
+		List<Command> commandList = mCommandListParser.parse(commandListDocument);
+		if(commandList == null) {
+			Log.e(getClass().getName(), "Could not parse command list from " + node.commandListUrl);
+			return;
+		}
+		setCommandList(commandList, node.id);
+	}
+
+	private Document getCommandListDocument(String commandListUrl) {
+		String xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+				+ "<CommandList>"
+				+ "	<Command name=\"Power On\">"
+				+ "		<StatusValueCondition status=\"Power On\" type=\"boolean\" value=\"false\" default=\"true\"/>"
+				+ "	</Command>"
+				+ "	<Command name=\"Power Off\">"
+				+ "		<StatusValueCondition status=\"Power On\" type=\"boolean\" value=\"true\" default=\"false\"/>"
+				+ "	</Command>"
+				+ "	<Command name=\"Set Speed\">"
+				+ "		<Argument name=\"speed\" type=\"string\">"
+				+ "			<EnumRange>"
+				+ "				<Value>Low</Value>"
+				+ "				<Value>Medium</Value>"
+				+ "				<Value>High</Value>"
+				+ "			</EnumRange>"
+				+ "		</Argument>"
+				+ "		<StatusValueCondition status=\"Power On\" type=\"boolean\" value=\"true\" default=\"false\"/>"
+				+ "	</Command>"
+				+ "</CommandList>";
+		try {
+			return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes()));
+		} catch (SAXException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	@Override
@@ -62,7 +124,6 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 
 	@Override
 	public void onNodeRemoved(Node node) {
-		mCommands.remove(node.id);
 	}
 
 	@Override
@@ -82,16 +143,6 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 
 	@Override
 	public void onConnected() {
-		synchronized (mCommands) {
-			this.mConnected = true;
-		}
-		Set<Long> nodeIds = mCommands.keySet();
-		for(Long nodeId : nodeIds) {
-			Collection<Command> commands = mCommands.remove(nodeId);
-			for(Command command : commands) {
-				sendCommand(command, nodeId);
-			}
-		}
 	}
 
 	@Override
@@ -127,30 +178,24 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 	}
 
 	@Override
-	public void onCommandFailure(long nodeId, long commandId) {
+	public void onCommandFailure(long nodeId, long commandId, String failureMessage) {
 		synchronized (mListeners) {
 			for(CommandListener listener : mListeners) {
-				listener.onCommandFailure(nodeId, commandId);
+				listener.onCommandFailure(nodeId, commandId, failureMessage);
 			}
 		}
 	}
 
 	@Override
-	public long sendCommand(Command command, final long nodeId) {
-		if(!mCommands.containsKey(nodeId)) return -1;
-		synchronized (mCommands) {
-			if(!mConnected) {
-				mCommands.get(nodeId).add(command);
-				return -1;
-			}
-		}
+	public long sendCommand(Command command, final long nodeId, List<CommandArgument<?>> args) {
 		long commandId = 0;
 		synchronized (lock) {
 			commandId = nextCommandId ++;
 		}
 		final long finalCommandId = commandId;
 		ClientCommandMessage message = new ClientCommandMessage(mMessageManager.getProtocolParameters(), 
-				nodeId, command.name, commandId, command.args);
+				nodeId, command.name, commandId, args);
+		mCommandHistory.put(commandId, message);
 		mMessageManager.sendMessage(message, new PacketSentListener() {
 			@Override
 			public void onUnbind(Class<? extends IListener> listenerClass) {}
@@ -211,10 +256,30 @@ public class CommandManager extends ManagerBase<CommandListener> implements
 
 	@Override
 	protected void teardown() {
-		this.mCommands.clear();
 	}
 
 	@Override
 	protected void performInitialUpdate(CommandListener listener) {}
+
+
+	@Override
+	public long getNodeIdForCommandId(long commandId) {
+		ClientCommandMessage message = mCommandHistory.get(commandId);
+		if(message != null) {			
+			return message.nodeId;
+		} else {
+			return -1;
+		}
+	}
+
+	@Override
+	public String getCommandNameForCommandId(long commandId) {
+		ClientCommandMessage message = mCommandHistory.get(commandId);
+		if(message != null) {			
+			return message.name;
+		} else {
+			return null;
+		}
+	}
 
 }
