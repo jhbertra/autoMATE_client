@@ -7,9 +7,13 @@ import com.automate.client.R;
 import com.automate.client.views.node.NodeActivity;
 import com.automate.client.views.nodelist.NodeListService.NodeListServiceBinder;
 import com.automate.protocol.models.Node;
+import com.automate.protocol.models.Warning;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
@@ -131,7 +135,15 @@ public class NodeListActivity extends Activity implements Callback, ServiceConne
 			break;			
 			
 		case NodeListService.WARNING_RECEIVED:
-			// TODO
+			new AlertDialog.Builder(this)
+			.setTitle("Warning Received")
+			.setMessage(((Warning) msg.obj).message)
+			.setPositiveButton(R.string.button_ok, new Dialog.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					dialog.dismiss();
+				}
+			}).show();
 			break;
 			
 		default:

@@ -97,7 +97,7 @@ public class RegistrationActivity extends Activity implements ServiceConnection,
 			
 			@Override
 			public void onTextChanged(CharSequence s, int start, int before, int count) {
-				setPasswordsMatch(s.equals(passwordField.getText()));
+				setPasswordsMatch(s.toString().equals(passwordField.getText().toString()));
 			}
 		};
 		nameWatcher = new TextWatcher() {

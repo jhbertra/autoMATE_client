@@ -19,6 +19,7 @@ import com.automate.client.managers.packet.PacketSentListener;
 import com.automate.protocol.Message;
 import com.automate.protocol.client.ClientProtocolParameters;
 import com.automate.protocol.client.messages.ClientAuthenticationMessage;
+import com.automate.protocol.client.messages.ClientRegistrationMessage;
 import com.automate.protocol.server.ServerProtocolParameters;
 
 public class AuthenticationManager extends ManagerBase<AuthenticationListener> implements IAuthenticationManager, PacketSentListener {
@@ -26,14 +27,14 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 	private Context mContext;
 	private IMessageManager mMessageManager;
 	private IConnectionManager mConnectionManager;
-	
+
 	private ConnectedState mConnectedState;
-	
+
 	private String mUsername;
 	private String mPassword;
-	
+
 	private boolean attemptReconeect;
-	
+
 	public AuthenticationManager(Context context, IMessageManager messageManager, IConnectionManager connectionManager) {
 		super(AuthenticationListener.class);
 		this.mContext = context;
@@ -101,9 +102,19 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 	}
 
 	@Override
-	public boolean register(String username, String password, String name,
-			String email) {
-		// TODO Auto-generated method stub
+	public boolean register(String username, String password, String name, String email) {
+		String currentSessionKey = mMessageManager.getSessionKey();
+		if(username != null && password != null && name != null && email != null 
+				&& (currentSessionKey == null || currentSessionKey.isEmpty())) {
+			ClientRegistrationMessage message = new ClientRegistrationMessage(mMessageManager.getProtocolParameters(), username, 
+					password, email, name);
+			mMessageManager.sendMessage(message, this);
+			onAuthenticating(username);
+			mUsername = username;
+			mPassword = password;
+			this.attemptReconeect = true;
+			return true;
+		}
 		return false;
 	}
 
@@ -151,7 +162,7 @@ public class AuthenticationManager extends ManagerBase<AuthenticationListener> i
 			break;
 		}
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.automate.client.authentication.IAuthenticationManagerr#onAuthenticated(java.lang.String, java.lang.String)
 	 */

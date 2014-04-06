@@ -15,6 +15,7 @@ import com.automate.client.views.node.NodeService.NodeServiceBinder;
 import com.automate.protocol.models.CommandArgument;
 import com.automate.protocol.models.Status;
 import com.automate.protocol.models.Type;
+import com.automate.protocol.models.Warning;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -132,7 +133,15 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 			break;
 
 		case NodeService.NEW_WARNING:
-
+			new AlertDialog.Builder(this)
+			.setTitle("Warning Received")
+			.setMessage(((Warning) msg.obj).message)
+			.setPositiveButton(R.string.button_ok, new Dialog.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					dialog.dismiss();
+				}
+			}).show();
 			break;
 
 		case NodeService.STATUS_UPDATED:
