@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.automate.client.R;
+import com.automate.client.views.discovery.DiscoveryActivity;
 import com.automate.client.views.node.NodeActivity;
 import com.automate.client.views.nodelist.NodeListService.NodeListServiceBinder;
 import com.automate.protocol.models.Node;
@@ -22,6 +23,9 @@ import android.os.Handler.Callback;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
@@ -38,7 +42,25 @@ public class NodeListActivity extends Activity implements Callback, ServiceConne
 	private View mLoadingView;
 	
 	private ListView mListView;
-	
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.nodelist, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch(item.getItemId()) {
+		case R.id.node_list_scan:
+			Intent intent = new Intent(this, DiscoveryActivity.class);
+			startActivity(intent);
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -71,7 +93,9 @@ public class NodeListActivity extends Activity implements Callback, ServiceConne
 	protected void onStop() {
 		super.onStop();
 		unbindService(this);
-		mService.stopSelf();
+		if(mService != null) {
+			mService.stopSelf();
+		}
 	}
 
 	@Override

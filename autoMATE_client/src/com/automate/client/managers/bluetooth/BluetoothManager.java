@@ -149,6 +149,12 @@ public class BluetoothManager extends ManagerBase<BluetoothListener> implements 
 
 	@Override
 	protected void setupInitialState() {
+		IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+		mContext.registerReceiver(mReceiver, filter);
+		filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+		mContext.registerReceiver(mReceiver, filter);
+		filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+		mContext.registerReceiver(mReceiver, filter);
 		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 		if(mBluetoothAdapter == null) {
 			mState = State.NO_BLUETOOTH;
@@ -163,12 +169,6 @@ public class BluetoothManager extends ManagerBase<BluetoothListener> implements 
 		} else {
 			mState = State.IDLE;
 		}
-		IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-		mContext.registerReceiver(mReceiver, filter);
-		filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-		mContext.registerReceiver(mReceiver, filter);
-		filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-		mContext.registerReceiver(mReceiver, filter);
 	}
 
 	@Override
@@ -229,6 +229,7 @@ public class BluetoothManager extends ManagerBase<BluetoothListener> implements 
 	
 	@Override
 	public void connect(final BluetoothDevice device) {
+		if(!updateState()) return;
 		if(mState == State.CONNECTED || mState == State.CONNECTING) throw new IllegalStateException("Cannot connect while already connected or connecting.");
 		mBluetoothAdapter.cancelDiscovery();
 		comminucationThread.submit(new ConnectTask(device, new ConnectionCallback() {
@@ -286,6 +287,7 @@ public class BluetoothManager extends ManagerBase<BluetoothListener> implements 
 		if(mState == State.CONNECTED || mState == State.CONNECTING) return true;
 		if(mBluetoothAdapter == null) {
 			mState = State.NO_BLUETOOTH;
+			onBluetoothUnavailable();
 			return false;
 		}
 		boolean enebled = mBluetoothAdapter.isEnabled();
@@ -306,19 +308,21 @@ public class BluetoothManager extends ManagerBase<BluetoothListener> implements 
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			if(action.equals(BluetoothAdapter.ACTION_DISCOVERY_STARTED)) {
-				synchronized (devices) {
+			synchronized (devices) {
+				if(action.equals(BluetoothAdapter.ACTION_DISCOVERY_STARTED)) {
 					devices.clear();
+					updateState();
+					onBluetoothDiscovery();
+				} else if(action.equals(BluetoothDevice.ACTION_FOUND.toString())) {
+					BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+					synchronized (devices) {
+						devices.add(device);
+					}
+					onDeviceDisvocered(device);
+				} else if(action.equals(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.toString()) && mState == State.DISCOVERY_RUNNING) {
+					updateState();
+					onBluetoothDiscoveryFinished();
 				}
-				onBluetoothDiscovery();
-			} else if(action.equals(BluetoothDevice.ACTION_FOUND.toString())) {
-				BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-				synchronized (devices) {
-					devices.add(device);
-				}
-				onDeviceDisvocered(device);
-			} else if(action.equals(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.toString())) {
-				onBluetoothDiscoveryFinished();
 			}
 		}
 		

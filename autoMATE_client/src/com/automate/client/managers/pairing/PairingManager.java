@@ -24,16 +24,16 @@ public class PairingManager extends ManagerBase<PairingListener> implements IPai
 	private boolean scanning;
 
 	private IBluetoothManager bluetoothManager;
-	
+
 	private IMessageManager messageManager;
 
 	private DeviceInfo mPairingDevice;
 
-	private String ssid;
+	private String ssid = "airuc-secure";
 
-	private String username;
+	private String username = "jhbertra";
 
-	private String passphrase;
+	private String passphrase = "CAMeosixty4";
 
 	public PairingManager(IBluetoothManager bluetoothManager, IMessageManager messageManager) {
 		super(PairingListener.class);
@@ -89,7 +89,7 @@ public class PairingManager extends ManagerBase<PairingListener> implements IPai
 				@Override
 				public void onResponse(String message) {
 					if(message != null) {
-						String [] parts = message.substring(10, message.length() - 1).split(",");
+						String [] parts = message.substring(11, message.length() - 1).split(",");
 						devices.add(new DeviceInfo(Long.parseLong(parts[0]), parts[1], Integer.parseInt(parts[2]), Integer.parseInt(parts[3]), 
 								device));
 					}
@@ -102,8 +102,6 @@ public class PairingManager extends ManagerBase<PairingListener> implements IPai
 				public void onResponse(String message) {
 					if("ackInitPairing".equals(message)) {
 						onPairing(mPairingDevice);
-						ClientNodeRegistrationMessage regMessage = new ClientNodeRegistrationMessage(messageManager.getProtocolParameters(), 
-								mPairingDevice.modelId, mPairingDevice.deviceName, mPairingDevice.maxVersionMajor, mPairingDevice.maxVersionMinor);
 					}
 				}
 			});
@@ -112,10 +110,12 @@ public class PairingManager extends ManagerBase<PairingListener> implements IPai
 
 	@Override
 	public void onDisconnected() {
-		if(scanning) {
-			getNextDeviceInfo();
-		} else {
-			mPairingDevice = null;
+		synchronized (devices) {
+			if(scanning) {
+				getNextDeviceInfo();
+			} else {
+				mPairingDevice = null;
+			}
 		}
 	}
 
@@ -176,7 +176,6 @@ public class PairingManager extends ManagerBase<PairingListener> implements IPai
 
 	@Override
 	public void scan() {
-		if(!bluetoothEnabled) return;
 		bluetoothManager.startDiscovery();
 	}
 
@@ -186,6 +185,13 @@ public class PairingManager extends ManagerBase<PairingListener> implements IPai
 			mPairingDevice = device;
 			bluetoothManager.connect(device.bluetoothdevice);
 		}
+	}
+
+	@Override
+	public void notifyNameProvided(String name) {
+		ClientNodeRegistrationMessage regMessage = new ClientNodeRegistrationMessage(messageManager.getProtocolParameters(), 
+				mPairingDevice.modelId, name, mPairingDevice.maxVersionMajor, mPairingDevice.maxVersionMinor);
+		messageManager.sendMessage(regMessage);
 	}
 
 	@Override
@@ -250,12 +256,11 @@ public class PairingManager extends ManagerBase<PairingListener> implements IPai
 
 
 	private void getNextDeviceInfo() {
-		if(btDevices.size() > 0) {
-			BluetoothDevice device = null;
-			do {
-				device = btDevices.remove(0);
-			} while(!device.getName().equals("autoMATE-bluetooth-service"));
-			if(device != null) {
+		BluetoothDevice device = null;
+		while(btDevices.size() > 0) {
+			device = btDevices.remove(0);
+			String deviceName = device.getName();
+			if(deviceName != null && deviceName.equals("autoMATE-bluetooth-service")) {
 				getDeviceInfo(device);
 				return;
 			}

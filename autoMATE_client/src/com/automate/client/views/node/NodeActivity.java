@@ -67,7 +67,7 @@ public class NodeActivity extends Activity implements Callback, OnItemClickListe
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			mService = ((NodeServiceBinder)service).getService();
-			mCommandAdapter = new CommandAdapter(NodeActivity.this, R.layout.command_list_item, R.id.node_command_name, mService.getCommands());
+			mCommandAdapter = new CommandAdapter(NodeActivity.this, R.layout.command_list_item, R.id.discovery_list_name, mService.getCommands());
 			mNameView.setText(mService.getNode().name);
 			mService.refreshStatus();
 		}

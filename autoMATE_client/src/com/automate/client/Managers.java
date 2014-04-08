@@ -2,11 +2,13 @@ package com.automate.client;
 
 import com.automate.client.managers.IManager;
 import com.automate.client.managers.authentication.IAuthenticationManager;
+import com.automate.client.managers.bluetooth.IBluetoothManager;
 import com.automate.client.managers.command.ICommandManager;
 import com.automate.client.managers.connectivity.IConnectionManager;
 import com.automate.client.managers.messaging.IMessageManager;
 import com.automate.client.managers.node.INodeManager;
 import com.automate.client.managers.packet.IPacketManager;
+import com.automate.client.managers.pairing.IPairingManager;
 import com.automate.client.managers.security.ISecurityManager;
 import com.automate.client.managers.status.IStatusManager;
 import com.automate.client.managers.warning.IWarningManager;
@@ -30,13 +32,18 @@ public class Managers {
 	public final IStatusManager statusManager;
 	
 	public final IWarningManager warningManager;
+	
+	public final IPairingManager pairingManager;
+	
+	public final IBluetoothManager bluetoothManager;
 
 	public Managers(IAuthenticationManager authenticationManager,
 			ICommandManager commandManager,
 			IConnectionManager connectionManager,
 			IMessageManager messageManager, INodeManager nodeManager,
 			IPacketManager packetManager, ISecurityManager securityManager,
-			IStatusManager statusManager, IWarningManager warningManager) {
+			IStatusManager statusManager, IWarningManager warningManager, 
+			IPairingManager pairingManager, IBluetoothManager bluetoothManager) {
 		this.authenticationManager = authenticationManager;
 		this.commandManager = commandManager;
 		this.connectionManager = connectionManager;
@@ -46,6 +53,8 @@ public class Managers {
 		this.securityManager = securityManager;
 		this.statusManager = statusManager;
 		this.warningManager = warningManager;
+		this.pairingManager = pairingManager;
+		this.bluetoothManager = bluetoothManager;
 	}
 	
 	public <T extends IManager<?>> T getManager(Class<T> managerClass) {
@@ -67,6 +76,10 @@ public class Managers {
 			return (T) statusManager;
 		} else if(managerClass.equals(IWarningManager.class)) {
 			return (T) warningManager;
+		} else if(managerClass.equals(IPairingManager.class)) {
+			return (T) pairingManager;
+		} else if(managerClass.equals(IBluetoothManager.class)) {
+			return (T) bluetoothManager;
 		} else {
 			return null;
 		}

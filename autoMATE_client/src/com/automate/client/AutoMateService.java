@@ -6,6 +6,8 @@ import com.automate.client.managers.IListener;
 import com.automate.client.managers.IManager;
 import com.automate.client.managers.authentication.AuthenticationManager;
 import com.automate.client.managers.authentication.IAuthenticationManager;
+import com.automate.client.managers.bluetooth.BluetoothManager;
+import com.automate.client.managers.bluetooth.IBluetoothManager;
 import com.automate.client.managers.command.CommandManager;
 import com.automate.client.managers.command.ICommandManager;
 import com.automate.client.managers.connectivity.ConnectionManager;
@@ -18,6 +20,8 @@ import com.automate.client.managers.node.NodeManager;
 import com.automate.client.managers.packet.IPacketManager;
 import com.automate.client.managers.packet.IncomingPacketListenerThread;
 import com.automate.client.managers.packet.PacketManager;
+import com.automate.client.managers.pairing.IPairingManager;
+import com.automate.client.managers.pairing.PairingManager;
 import com.automate.client.managers.security.ISecurityManager;
 import com.automate.client.managers.security.SecurityManager;
 import com.automate.client.managers.status.IStatusManager;
@@ -79,6 +83,8 @@ public class AutoMateService extends Service implements MessageListener {
 		IStatusManager statusManager = new StatusManager(messageManager, connectionManager, nodeManager);
 		IWarningManager warningManager = new WarningManager(connectionManager, nodeManager, messageManager);
 		ICommandManager commandManager = new CommandManager(this, connectionManager, nodeManager, messageManager);
+		IBluetoothManager bluetoothManager = new BluetoothManager(this);
+		IPairingManager pairingManager = new PairingManager(bluetoothManager, messageManager);
 		
 		this.managers = new Managers(authenticationManager, 
 				commandManager, 
@@ -88,7 +94,9 @@ public class AutoMateService extends Service implements MessageListener {
 				packetManager, 
 				securityManager, 
 				statusManager, 
-				warningManager);
+				warningManager,
+				pairingManager,
+				bluetoothManager);
 		
 		createMessageHandlers();
 	}
@@ -108,6 +116,7 @@ public class AutoMateService extends Service implements MessageListener {
 				getResources().getString(R.string.command_invalid_command_message)));
 		handlers.put(MessageType.STATUS_UPDATE_NODE, new StatusUpdateMessageHandler(managers.statusManager));
 		handlers.put(MessageType.WARNING_NODE, new WarningMessageHandler(managers.warningManager));
+		handlers.put(MessageType.REGISTER_NODE, new NodeRegistrationMessageHandler(managers.pairingManager));
 	}
 
 	private IncomingMessageParser<ServerProtocolParameters> getIncomingMessageParser() {
@@ -119,6 +128,7 @@ public class AutoMateService extends Service implements MessageListener {
 		subParsers.put(MessageType.PING.toString(), new ServerPingMessageSubParser());
 		subParsers.put(MessageType.STATUS_UPDATE_NODE.toString(), new ServerClientStatusUpdateMessageSubParser());
 		subParsers.put(MessageType.WARNING_NODE.toString(), new ServerWarningMessageSubParser());
+		subParsers.put(MessageType.REGISTER_NODE.toString(), new ServerNodeRegistrationMessageSubParser());
 		IncomingMessageParser<ServerProtocolParameters> incomingMessageParser = new IncomingMessageParser<ServerProtocolParameters>(subParsers);
 		return incomingMessageParser;
 	}
@@ -140,6 +150,8 @@ public class AutoMateService extends Service implements MessageListener {
 		managers.statusManager.start();
 		managers.warningManager.start();
 		managers.commandManager.start();
+		managers.bluetoothManager.start();
+		managers.pairingManager.start();
 
 		managers.messageManager.bind(this);
 		started = true;

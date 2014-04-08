@@ -1,6 +1,6 @@
 package com.automate.client.views.discovery;
 
-import java.util.List; 
+import java.util.List;  
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
@@ -19,22 +19,24 @@ import com.automate.client.views.AbstractViewService;
 
 public class DiscoveryService extends AbstractViewService implements PairingListener, BluetoothListener {
 
-	public static int SCANNING = 0;
-	public static int DEVICES_DISCOVERRED = 1;
-	public static int NO_DEVICES = 2;
-	public static int PAIRING = 3;
-	public static int NEW_DEVICE_PARIED = 4;
-	public static int PAIRING_FAILED = 5;
-	public static int BLUETOOTH_UNAVAILABLE = 6;
-	public static int BLUETOOTH_DISABLED = 7;
+	public static class Messages {
+		public static final int SCANNING = 0;
+		public static final int DEVICES_DISCOVERRED = 1;
+		public static final int NO_DEVICES = 2;
+		public static final int PAIRING = 3;
+		public static final int NEW_DEVICE_PARIED = 4;
+		public static final int PAIRING_FAILED = 5;
+		public static final int BLUETOOTH_UNAVAILABLE = 6;
+		public static final int BLUETOOTH_DISABLED = 7;
+	}
 	
 	private IBinder mBinder = new DiscoveryServiceBinder();
-	private IPairingManager mDiscoveryManager;
+	private IPairingManager mPairingManager;
 	private IBluetoothManager mBluetoothManager;
 
 	private void notifyScanning() {
 		Message message = new Message();
-		message.what = SCANNING;
+		message.what = Messages.SCANNING;
 		try {
 			mMessenger.send(message);
 		} catch(RemoteException e) {}
@@ -42,7 +44,7 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	
 	private void notifyDevicesDiscovered(List<DeviceInfo> devices) {
 		Message message = new Message();
-		message.what = DEVICES_DISCOVERRED;
+		message.what = Messages.DEVICES_DISCOVERRED;
 		message.obj = devices;
 		try {
 			mMessenger.send(message);
@@ -51,7 +53,7 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	
 	private void notifyNoDevices() {
 		Message message = new Message();
-		message.what = NO_DEVICES;
+		message.what = Messages.NO_DEVICES;
 		try {
 			mMessenger.send(message);
 		} catch(RemoteException e) {}
@@ -59,7 +61,7 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	
 	private void notifyPairing(DeviceInfo device) {
 		Message message = new Message();
-		message.what = PAIRING;
+		message.what = Messages.PAIRING;
 		message.obj = device;
 		try {
 			mMessenger.send(message);
@@ -68,7 +70,7 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	
 	private void notifyNewDevicePaired(DeviceInfo device) {
 		Message message = new Message();
-		message.what = NEW_DEVICE_PARIED;
+		message.what = Messages.NEW_DEVICE_PARIED;
 		message.obj = device;
 		try {
 			mMessenger.send(message);
@@ -77,7 +79,7 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 
 	private void notifyPairingFailure(DeviceInfo device) {
 		Message message = new Message();
-		message.what = PAIRING_FAILED;
+		message.what = Messages.PAIRING_FAILED;
 		message.obj = device;
 		try {
 			mMessenger.send(message);
@@ -86,7 +88,7 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	
 	private void notifyBluetoothUnavailable() {
 		Message message = new Message();
-		message.what = BLUETOOTH_UNAVAILABLE;
+		message.what = Messages.BLUETOOTH_UNAVAILABLE;
 		try {
 			mMessenger.send(message);
 		} catch(RemoteException e) {}
@@ -94,7 +96,7 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	
 	private void notifyBluetoothDisabled() {
 		Message message = new Message();
-		message.what = BLUETOOTH_DISABLED;
+		message.what = Messages.BLUETOOTH_DISABLED;
 		try {
 			mMessenger.send(message);
 		} catch(RemoteException e) {}
@@ -146,8 +148,20 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 		notifyPairingFailure(device);
 	}
 
+	public void pair(DeviceInfo device) {
+		this.mPairingManager.pair(device);
+	}
+	
 	public void scan() {
-		this.mDiscoveryManager.scan();
+		if(mPairingManager != null) {
+			this.mPairingManager.scan();
+		}
+	}
+	
+	public void setDeviceName(String name) {
+		if(mPairingManager != null) {
+			this.mPairingManager.notifyNameProvided(name);
+		}
 	}
 
 	@Override
@@ -160,9 +174,9 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	 */
 	@Override
 	public void onDestroy() {
-		if(mDiscoveryManager != null) {
-			mDiscoveryManager.unbind(this);
-			mDiscoveryManager = null;
+		if(mPairingManager != null) {
+			mPairingManager.unbind(this);
+			mPairingManager = null;
 		}
 		super.onDestroy();
 	}
@@ -177,18 +191,18 @@ public class DiscoveryService extends AbstractViewService implements PairingList
 	
 	@Override
 	protected void onServiceConnected() {
-		mDiscoveryManager = mAutoMateService.getManager(IPairingManager.class);
+		mPairingManager = mAutoMateService.getManager(IPairingManager.class);
 		mBluetoothManager = mAutoMateService.getManager(IBluetoothManager.class);
 		
 		mBluetoothManager.bind(this);
-		mDiscoveryManager.bind(this);
+		mPairingManager.bind(this);
 	}
 	
 	@Override
 	protected void onServiceDisconnected() {
-		if(mDiscoveryManager != null) {
-			mDiscoveryManager.unbind(this);
-			mDiscoveryManager = null;
+		if(mPairingManager != null) {
+			mPairingManager.unbind(this);
+			mPairingManager = null;
 		}
 		
 		if(mBluetoothManager!= null) {

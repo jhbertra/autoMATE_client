@@ -13,5 +13,7 @@ public interface IPairingManager extends IManager<PairingListener>, PairingListe
 	public void notifyPairingSuccess(long nodeId, String password);
 	
 	public void notifyPairingFailure();
+
+	void notifyNameProvided(String name);
 	
 }

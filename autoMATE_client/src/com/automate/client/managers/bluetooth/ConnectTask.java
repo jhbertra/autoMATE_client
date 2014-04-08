@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.os.ParcelUuid;
 import android.util.Log;
 
 public class ConnectTask implements Runnable {
@@ -20,7 +21,8 @@ public class ConnectTask implements Runnable {
 	@Override
 	public void run() {
 		try {
-			BluetoothSocket socket = mDevice.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+			UUID uuid = UUID.fromString("04c6093b-0000-1000-8000-00805f9b34fb");
+			BluetoothSocket socket = mDevice.createInsecureRfcommSocketToServiceRecord(uuid);
 			socket.connect();
 			mCallback.onConnected(socket);
 		} catch (IOException e) {
